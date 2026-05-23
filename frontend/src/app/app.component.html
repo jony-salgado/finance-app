@@ -1,0 +1,385 @@
+<div class="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20 md:pb-0 md:flex">
+  
+  <!-- SIDEBAR -->
+  <nav class="fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around p-2 z-10 md:relative md:w-64 md:flex-col md:justify-start md:border-t-0 md:border-r md:h-screen md:p-6 md:overflow-y-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:shadow-none">
+    <div class="hidden md:flex items-center gap-2 mb-8 text-indigo-600">
+      <i class="ph ph-wallet text-3xl"></i>
+      <span class="text-2xl font-bold tracking-tight">FinançasApp</span>
+    </div>
+    <div class="flex md:flex-col w-full justify-around md:justify-start gap-1 overflow-x-auto md:overflow-visible">
+      @for (aba of abasMenu; track aba.id) {
+        <button (click)="abaAtiva.set($any(aba.id))"
+          class="flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 rounded-xl transition min-w-[64px]"
+          [class.text-indigo-600]="abaAtiva() === aba.id" [class.md:bg-indigo-50]="abaAtiva() === aba.id"
+          [class.text-slate-400]="abaAtiva() !== aba.id" [class.hover:text-slate-600]="abaAtiva() !== aba.id" [class.md:hover:bg-slate-100]="abaAtiva() !== aba.id">
+          <i [class]="aba.icon + ' text-2xl ' + (abaAtiva() === aba.id ? 'ph-fill' : '')"></i>
+          <span class="text-[10px] md:text-base font-medium" [class.font-semibold]="abaAtiva() === aba.id">{{ aba.label }}</span>
+        </button>
+      }
+    </div>
+    <div class="hidden md:block mt-auto pt-6">
+      <button (click)="abrirModalTransacao()" class="bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 w-full active:scale-95">
+        <i class="ph ph-plus text-xl"></i> <span class="font-semibold">Nova Transação</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full h-screen overflow-y-auto">
+    <header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8 pt-2 md:pt-0">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">{{ tituloHeader() }}</h1>
+        <p class="text-slate-500 text-sm mt-1">Gerencie suas finanças com inteligência.</p>
+      </div>
+      @if (abaAtiva() === 'dashboard' || abaAtiva() === 'transacoes' || abaAtiva() === 'cartoes') {
+        <div class="flex justify-end">
+          <div class="flex items-center justify-between w-full md:w-auto gap-4 bg-white rounded-xl shadow-sm border border-slate-100 p-1.5 px-3">
+            <button (click)="alterarMes(-1)" class="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-lg transition"><i class="ph ph-caret-left text-lg"></i></button>
+            <span class="font-semibold text-slate-700 min-w-[80px] text-center text-sm">{{ nomeMesAtual() }}</span>
+            <button (click)="alterarMes(1)" class="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-lg transition"><i class="ph ph-caret-right text-lg"></i></button>
+          </div>
+        </div>
+      }
+    </header>
+
+    <!-- DASHBOARD ABA -->
+    @if (abaAtiva() === 'dashboard') {
+      <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <!-- Cards Resumo -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          @for (card of resumoCards(); track card.titulo) {
+            <app-card-resumo 
+              [titulo]="card.titulo" 
+              [valor]="card.valor" 
+              [iconeClass]="card.iconeClass" 
+              [bgIcon]="card.bgIcon" 
+              [destaque]="card.destaque" 
+              [tooltip]="card.tooltip">
+            </app-card-resumo>
+          }
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Saldo por Conta -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full min-h-[200px] md:col-span-2">
+            <div class="flex items-center gap-2 mb-6"><i class="ph ph-bank text-xl text-slate-400"></i><h3 class="text-slate-700 font-bold">Saldo por Conta</h3></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
+              @for (contaEx of dash().saldosPorContaExibicao; track contaEx.id) {
+                <div class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-100 transition-colors">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white shadow-sm text-indigo-600 flex items-center justify-center"><i class="ph ph-bank"></i></div>
+                    <span class="font-semibold text-slate-700">{{ contaEx.nome }}</span>
+                  </div>
+                  <span class="font-bold text-lg" [class.text-red-600]="contaEx.saldo < 0" [class.text-slate-800]="contaEx.saldo >= 0">{{ contaEx.saldoFormatado }}</span>
+                </div>
+              }
+              @if (dash().saldosPorContaExibicao.length === 0) { <p class="text-slate-400 text-sm py-4 col-span-full text-center">Nenhuma conta cadastrada.</p> }
+            </div>
+          </div>
+
+          <!-- Gráficos de Pizza -->
+          @for (pizza of pizzaCards(); track pizza.titulo) {
+            <app-card-pizza 
+              [titulo]="pizza.titulo" 
+              [dados]="pizza.dados">
+            </app-card-pizza>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- TRANSAÇÕES ABA -->
+    @if (abaAtiva() === 'transacoes') {
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
+        @if (transacoesExibicao().length === 0) {
+          <div class="text-center py-12"><i class="ph ph-list-numbers text-5xl text-slate-300 mb-4 block"></i><p class="text-slate-500 font-medium">Nenhuma transação encontrada neste mês.</p></div>
+        } @else {
+          <div class="space-y-3">
+            @for (t of transacoesExibicao(); track t.id) {
+              <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group" 
+                   [class.bg-indigo-50]="t.isFatura" 
+                   [class.bg-opacity-30]="t.isFatura" 
+                   [class.hover:bg-slate-50]="!t.isFatura">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full flex items-center justify-center {{t.catCor}}">
+                    <i [class]="t.catIcon + ' text-xl'"></i>
+                  </div>
+                  <div>
+                    <p class="font-semibold text-slate-800">{{ t.descricao }}</p>
+                    <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                      <span>{{ t.dataFormatada }}</span><span>•</span><span><i class="ph ph-credit-card"></i> {{ t.contaNome }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="font-bold" [class.text-red-600]="t.isDespesa" [class.text-green-600]="!t.isDespesa">
+                    {{ t.isDespesa ? '-' : '+' }}{{ t.valorFormatado }}
+                  </span>
+                  <div class="flex md:opacity-0 group-hover:opacity-100 transition">
+                    @if (!t.isFatura) { <button (click)="abrirModalTransacao(t)" class="p-2 text-slate-300 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button> }
+                    <button (click)="deletarTransacao(t.id)" class="p-2 text-slate-300 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- CARTÕES ABA -->
+    @if (abaAtiva() === 'cartoes') {
+      <div class="space-y-6 animate-in fade-in duration-300">
+        <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <h2 class="font-bold text-slate-800">Meus Cartões</h2>
+          <button (click)="abrirFormConta(true)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ Novo Cartão</button>
+        </div>
+        @if (cartoesExibicao().length === 0) { <p class="text-center text-slate-500 py-10">Nenhum cartão cadastrado.</p> }
+        
+        <!-- Form Novo/Editar Cartão -->
+        @if (formContaAberto() && formConta()?.tipo === 'credito') {
+          <form (submit)="$event.preventDefault(); salvarConta()" class="bg-white p-6 rounded-2xl border border-slate-200 mb-6 space-y-4 shadow-sm animate-in slide-in-from-top-4">
+            <h3 class="font-bold text-slate-700 mb-4">{{ formConta()?.id ? 'Editar Cartão' : 'Novo Cartão' }}</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nome do Cartão</label><input type="text" required [value]="formConta()?.nome" (input)="updateFormConta('nome', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Final do Cartão (4 dígitos)</label><input type="text" maxlength="4" required [value]="formConta()?.finalCartao || ''" (input)="updateFormConta('finalCartao', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" placeholder="1234" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Dia do Fechamento</label><input type="number" min="1" max="31" required [value]="formConta()?.diaFechamento || 1" (input)="updateFormConta('diaFechamento', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Dia do Vencimento</label><input type="number" min="1" max="31" required [value]="formConta()?.diaVencimento || 10" (input)="updateFormConta('diaVencimento', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-2">Cor do Cartão</label>
+              <div class="flex gap-2 flex-wrap">
+                @for (cor of objCoresCartao; track cor) {
+                  <button type="button" (click)="updateFormConta('corCartao', cor)" class="w-8 h-8 rounded-full shadow-sm {{cor}}" [class.ring-2]="formConta()?.corCartao === cor" [class.ring-offset-2]="formConta()?.corCartao === cor" [class.ring-indigo-400]="formConta()?.corCartao === cor"></button>
+                }
+              </div>
+            </div>
+            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="fecharFormConta()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Salvar</button></div>
+          </form>
+        }
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          @for (c of cartoesExibicao(); track c.id) {
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden group">
+              <div class="{{ c.corCartao || 'bg-slate-800' }} p-6 text-white relative">
+                <div class="flex justify-between items-start mb-8">
+                  <div class="w-10 h-8 bg-white/20 rounded flex items-center justify-center backdrop-blur-sm"><div class="w-6 h-4 bg-amber-200/50 rounded-sm"></div></div>
+                  <div class="flex gap-2 relative z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                     <button (click)="abrirFormConta(true, c)" class="p-1 hover:bg-white/20 rounded"><i class="ph ph-pencil-simple"></i></button>
+                     <button (click)="deletarConta(c.id)" class="p-1 hover:bg-white/20 rounded text-red-200"><i class="ph ph-trash"></i></button>
+                  </div>
+                </div>
+                <p class="font-medium text-lg tracking-widest opacity-90 mb-1">•••• •••• •••• {{ c.finalCartao || '1234' }}</p>
+                <div class="flex justify-between items-end"><p class="font-semibold text-xl">{{ c.nome }}</p></div>
+                <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-white rounded-full opacity-10"></div>
+              </div>
+              <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                  <div><p class="text-sm text-slate-500 font-medium mb-1">Valor da Fatura</p><p class="text-3xl font-bold text-slate-800">{{ c.valorFaturaFormatado }}</p></div>
+                  <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border" 
+                        [class.bg-blue-100]="c.fatura.status === 'aberta'" [class.text-blue-700]="c.fatura.status === 'aberta'" [class.border-blue-200]="c.fatura.status === 'aberta'"
+                        [class.bg-amber-100]="c.fatura.status === 'fechada'" [class.text-amber-700]="c.fatura.status === 'fechada'" [class.border-amber-200]="c.fatura.status === 'fechada'"
+                        [class.bg-green-100]="c.fatura.status === 'paga'" [class.text-green-700]="c.fatura.status === 'paga'" [class.border-green-200]="c.fatura.status === 'paga'"
+                        [class.bg-slate-100]="c.fatura.status === 'zerada'" [class.text-slate-600]="c.fatura.status === 'zerada'" [class.border-slate-200]="c.fatura.status === 'zerada'">
+                    {{ c.fatura.status }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between text-sm text-slate-600 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div class="flex flex-col gap-1"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Período</span><span class="font-medium">{{ c.dataAberturaFormatada }} a {{ c.dataFechamentoFormatada }}</span></div>
+                  <div class="h-8 w-px bg-slate-200"></div>
+                  <div class="flex flex-col gap-1 items-end"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Vencimento</span><span class="font-medium text-slate-800">{{ c.dataVencimentoFormatada }}</span></div>
+                </div>
+                @if (c.fatura.status !== 'paga' && c.fatura.valorFatura > 0) {
+                  <button (click)="abrirModalPagarFatura(c, c.fatura)" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-md">Pagar Fatura</button>
+                }
+                @if (c.fatura.status === 'paga') {
+                  <div class="w-full py-3 bg-green-50 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-100"><i class="ph ph-check-circle text-xl"></i> Fatura Paga ({{ c.valorPagoFormatado }})</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- CONTAS ABA -->
+    @if (abaAtiva() === 'contas') {
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-lg font-bold text-slate-800">Contas Correntes</h2>
+          <button (click)="abrirFormConta(false)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ Nova Conta</button>
+        </div>
+
+        <!-- Form Novo/Editar Conta -->
+        @if (formContaAberto() && formConta()?.tipo === 'debito') {
+          <form (submit)="$event.preventDefault(); salvarConta()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nome da Conta</label><input type="text" required [value]="formConta()?.nome" (input)="updateFormConta('nome', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Saldo Inicial</label>
+                <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span><input type="number" step="0.01" [value]="formConta()?.saldoInicial || 0" (input)="updateFormConta('saldoInicial', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100" /></div>
+              </div>
+            </div>
+            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="fecharFormConta()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Salvar</button></div>
+          </form>
+        }
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          @for (c of contasDebito(); track c.id) {
+            <div class="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50 group">
+              <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><i class="ph ph-bank text-lg"></i></div>
+                <p class="font-semibold text-slate-800">{{ c.nome }}</p>
+              </div>
+              <div class="flex gap-2 md:opacity-0 group-hover:opacity-100 transition">
+                <button (click)="abrirFormConta(false, c)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
+                <button (click)="deletarConta(c.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- CATEGORIAS ABA -->
+    @if (abaAtiva() === 'categorias') {
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-lg font-bold text-slate-800">Gerenciar Categorias</h2>
+          <button (click)="abrirFormCategoria()" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ Nova Categoria</button>
+        </div>
+
+        @if (formCategoriaAberto()) {
+          <form (submit)="$event.preventDefault(); salvarCategoria()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nome da Categoria</label><input type="text" required [value]="formCategoria()?.nome || ''" (input)="updateFormCategoria('nome', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tipo</label><select [value]="formCategoria()?.tipo || 'despesa'" (change)="updateFormCategoria('tipo', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-2">Cor</label>
+              <div class="flex gap-2 flex-wrap">
+                @for (c of objCoresDisp; track c) { <button type="button" (click)="updateFormCategoria('cor', c)" class="w-8 h-8 rounded-full {{c}}" [class.ring-2]="formCategoria()?.cor === c" [class.ring-offset-2]="formCategoria()?.cor === c" [class.ring-slate-400]="formCategoria()?.cor === c"></button> }
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-2">Ícone</label>
+              <div class="flex gap-2 flex-wrap">
+                @for (chave of chavesIcones; track chave) { <button type="button" (click)="updateFormCategoria('iconName', chave)" class="p-2 rounded-lg border text-xl" [class]="formCategoria()?.iconName === chave ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'"><i [class]="mapIcones[chave]"></i></button> }
+              </div>
+            </div>
+            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="fecharFormCategoria()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Salvar</button></div>
+          </form>
+        }
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          @for (c of categorias(); track c.id) {
+            <div class="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 group">
+              <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center {{c.cor}}"><i [class]="mapIcones[c.iconName] || 'ph ph-question'"></i></div><div><p class="font-semibold text-slate-800">{{c.nome}}</p><p class="text-xs text-slate-400 capitalize">{{c.tipo}}</p></div></div>
+              <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                <button (click)="abrirFormCategoria(c)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
+                <button (click)="deletarCategoria(c.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+  </main>
+
+  <!-- MODAL TRANSAÇÃO (NOVA / EDITAR) -->
+  @if (modalTransacaoAberto()) {
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-end md:items-center p-4">
+      <div class="bg-white w-full max-w-lg rounded-t-3xl md:rounded-2xl p-6 md:p-8 shadow-2xl animate-in zoom-in-95">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-slate-800">{{ formT().id ? 'Editar Transação' : 'Nova Transação' }}</h2>
+          <button (click)="fecharModalTransacao()" class="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
+        </div>
+        
+        @if (!formT().id) {
+          <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
+            <button (click)="setTipo('despesa')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="formT().tipo === 'despesa' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500'">Despesa</button>
+            <button (click)="setTipo('receita')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="formT().tipo === 'receita' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500'">Receita</button>
+          </div>
+        }
+
+        <form (submit)="$event.preventDefault(); salvarTransacao()" class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Valor</label>
+            <div class="relative"><span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">R$</span>
+              <input type="number" step="0.01" required [value]="formT().valor || ''" (input)="updateForm('valor', $any($event.target).value)"
+                     class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold focus:outline-none focus:ring-2"
+                     [class]="formT().tipo === 'despesa' ? 'text-red-600 focus:ring-red-200' : 'text-green-600 focus:ring-green-200'" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Descrição</label>
+            <input type="text" required [value]="formT().descricao" (input)="updateForm('descricao', $any($event.target).value)"
+                   class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Categoria</label>
+              <select required [value]="formT().categoria" (change)="updateForm('categoria', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <option value="" disabled>Selecione...</option>
+                @for (c of categorias(); track c.id) { @if (c.tipo === formT().tipo) { <option [value]="c.id">{{c.nome}}</option> } }
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Conta/Cartão</label>
+              <select required [value]="formT().conta" (change)="updateForm('conta', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <option value="" disabled>Selecione...</option>
+                @for (c of contas(); track c.id) { <option [value]="c.id">{{c.nome}}</option> }
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Data</label>
+            <input type="date" required [value]="formT().data" (input)="updateForm('data', $any($event.target).value)"
+                   class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+          </div>
+          <button type="submit" class="w-full py-4 rounded-xl font-bold text-white shadow-md transition-all active:scale-95" [class]="formT().tipo === 'despesa' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'">
+            {{ getBtnLabel() }}
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL PAGAR FATURA -->
+  @if (modalPagarAberto()) {
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+      <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-slate-800">Pagar Fatura</h2>
+          <button (click)="fecharModalPagarFatura()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
+        </div>
+        
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex justify-between items-center">
+          <div><p class="text-xs text-slate-500 font-bold uppercase">Cartão</p><p class="font-semibold text-slate-800">{{ faturaData()?.cartao?.nome }}</p></div>
+          <div class="text-right"><p class="text-xs text-slate-500 font-bold uppercase">Total a Pagar</p><p class="font-bold text-lg text-slate-800">{{ fm(faturaData()?.fatura?.valorFatura) }}</p></div>
+        </div>
+
+        @if (faturaErro()) {
+          <div class="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl flex items-start gap-3">
+            <i class="ph ph-warning-circle text-xl shrink-0 mt-0.5"></i><p>{{ faturaErro() }}</p>
+          </div>
+        }
+
+        <form (submit)="$event.preventDefault(); confirmarPagamentoFatura()" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">De qual conta o dinheiro saiu?</label>
+            <select required [value]="faturaContaOrigem()" (change)="faturaContaOrigem.set($any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-indigo-100 outline-none">
+              <option value="" disabled>Selecione uma conta...</option>
+              @for (c of contasDebito(); track c.id) {
+                <option [value]="c.id">{{c.nome}}</option>
+              }
+            </select>
+          </div>
+          <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95">Confirmar Pagamento</button>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>
