@@ -1,12 +1,12 @@
-import { Injectable, signal, computed } from '@angular/core';
-import { Transacao, Conta, Categoria } from '../models';
+import { Injectable, signal } from '@angular/core';
+import { Transaction, Account, Category } from '../models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FinanceService {
-  // Configurações
-  mapIcones: Record<string, string> = { 
+  // Configurations
+  iconMap: Record<string, string> = { 
     Utensils: 'ph-fork-knife', Car: 'ph-car', ShoppingCart: 'ph-shopping-cart', 
     GraduationCap: 'ph-graduation-cap', HeartPulse: 'ph-heartbeat', Landmark: 'ph-bank', 
     TrendingUp: 'ph-trend-up', ListOrdered: 'ph-list-numbers', Wallet: 'ph-wallet', 
@@ -22,76 +22,76 @@ export class FinanceService {
   };
 
   // State
-  transacoesGlobais = signal<Transacao[]>(this.getTransacoesIniciais());
-  categorias = signal<Categoria[]>([
-    { id: 'alimentacao', nome: 'Alimentação', iconName: 'Utensils', cor: 'bg-orange-100 text-orange-600', tipo: 'despesa' },
-    { id: 'transporte', nome: 'Transporte', iconName: 'Car', cor: 'bg-blue-100 text-blue-600', tipo: 'despesa' },
-    { id: 'salario', nome: 'Salário', iconName: 'Landmark', cor: 'bg-green-100 text-green-600', tipo: 'receita' },
-    { id: 'investimentos', nome: 'Investimentos', iconName: 'TrendingUp', cor: 'bg-teal-100 text-teal-600', tipo: 'receita' }
+  globalTransactions = signal<Transaction[]>(this.getInitialTransactions());
+  categories = signal<Category[]>([
+    { id: 'food', name: 'Food', iconName: 'Utensils', color: 'bg-orange-100 text-orange-600', type: 'expense' },
+    { id: 'transport', name: 'Transport', iconName: 'Car', color: 'bg-blue-100 text-blue-600', type: 'expense' },
+    { id: 'salary', name: 'Salary', iconName: 'Landmark', color: 'bg-green-100 text-green-600', type: 'income' },
+    { id: 'investments', name: 'Investments', iconName: 'TrendingUp', color: 'bg-teal-100 text-teal-600', type: 'income' }
   ]);
-  contas = signal<Conta[]>([
-    { id: 'conta_corrente', nome: 'Conta Corrente', tipo: 'debito', saldoInicial: 0 },
-    { id: 'nubank', nome: 'Cartão Nubank', tipo: 'credito', diaFechamento: 5, diaVencimento: 12, finalCartao: '1234', corCartao: 'bg-purple-600' }
+  accounts = signal<Account[]>([
+    { id: 'checking_account', name: 'Checking Account', type: 'debit', initialBalance: 0 },
+    { id: 'nubank', name: 'Nubank Card', type: 'credit', closingDay: 5, dueDay: 12, cardLastDigits: '1234', cardColor: 'bg-purple-600' }
   ]);
 
   constructor() {}
 
-  private getTransacoesIniciais(): Transacao[] {
+  private getInitialTransactions(): Transaction[] {
     const d = new Date();
-    const ano = d.getFullYear();
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const mesPassado = String(d.getMonth() === 0 ? 12 : d.getMonth()).padStart(2, '0');
-    const anoMesPassado = d.getMonth() === 0 ? ano - 1 : ano;
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const lastMonth = String(d.getMonth() === 0 ? 12 : d.getMonth()).padStart(2, '0');
+    const lastMonthYear = d.getMonth() === 0 ? year - 1 : year;
 
     return [
-      { id: '1', descricao: 'Salário', valor: 15400.00, tipo: 'receita', categoria: 'salario', conta: 'conta_corrente', data: `${ano}-${mes}-05` },
-      { id: '2', descricao: 'Supermercado', valor: 850.50, tipo: 'despesa', categoria: 'alimentacao', conta: 'nubank', data: `${ano}-${mes}-02` },
-      { id: '3', descricao: 'Uber', valor: 45.00, tipo: 'despesa', categoria: 'transporte', conta: 'nubank', data: `${ano}-${mes}-10` },
-      { id: '4', descricao: 'Restaurante', valor: 320.00, tipo: 'despesa', categoria: 'alimentacao', conta: 'nubank', data: `${anoMesPassado}-${mesPassado}-25` },
+      { id: '1', description: 'Salary', amount: 15400.00, type: 'income', category: 'salary', account: 'checking_account', date: `${year}-${month}-05` },
+      { id: '2', description: 'Supermarket', amount: 850.50, type: 'expense', category: 'food', account: 'nubank', date: `${year}-${month}-02` },
+      { id: '3', description: 'Uber', amount: 45.00, type: 'expense', category: 'transport', account: 'nubank', date: `${year}-${month}-10` },
+      { id: '4', description: 'Restaurant', amount: 320.00, type: 'expense', category: 'food', account: 'nubank', date: `${lastMonthYear}-${lastMonth}-25` },
     ];
   }
 
   // Utils
-  extrairHexCor(classesCor: string) {
-    if (!classesCor) return '#cbd5e1'; 
-    for (const key in this.tailwindColors) { if (classesCor.includes(key)) return this.tailwindColors[key]; }
+  extractHexColor(colorClasses: string) {
+    if (!colorClasses) return '#cbd5e1'; 
+    for (const key in this.tailwindColors) { if (colorClasses.includes(key)) return this.tailwindColors[key]; }
     return '#cbd5e1';
   }
 
   // Actions
-  addTransacao(t: Transacao) {
-    this.transacoesGlobais.update(ts => [...ts, t]);
+  addTransaction(t: Transaction) {
+    this.globalTransactions.update(ts => [...ts, t]);
   }
 
-  updateTransacao(t: Transacao) {
-    this.transacoesGlobais.update(ts => ts.map(item => item.id === t.id ? t : item));
+  updateTransaction(t: Transaction) {
+    this.globalTransactions.update(ts => ts.map(item => item.id === t.id ? t : item));
   }
 
-  deleteTransacao(id: string) {
-    this.transacoesGlobais.update(ts => ts.filter(t => t.id !== id));
+  deleteTransaction(id: string) {
+    this.globalTransactions.update(ts => ts.filter(t => t.id !== id));
   }
 
-  addCategoria(c: Categoria) {
-    this.categorias.update(cs => [...cs, c]);
+  addCategory(c: Category) {
+    this.categories.update(cs => [...cs, c]);
   }
 
-  updateCategoria(c: Categoria) {
-    this.categorias.update(cs => cs.map(item => item.id === c.id ? c : item));
+  updateCategory(c: Category) {
+    this.categories.update(cs => cs.map(item => item.id === c.id ? c : item));
   }
 
-  deleteCategoria(id: string) {
-    this.categorias.update(cs => cs.filter(c => c.id !== id));
+  deleteCategory(id: string) {
+    this.categories.update(cs => cs.filter(c => c.id !== id));
   }
 
-  addConta(c: Conta) {
-    this.contas.update(cs => [...cs, c]);
+  addAccount(c: Account) {
+    this.accounts.update(cs => [...cs, c]);
   }
 
-  updateConta(c: Conta) {
-    this.contas.update(cs => cs.map(item => item.id === c.id ? c : item));
+  updateAccount(c: Account) {
+    this.accounts.update(cs => cs.map(item => item.id === c.id ? c : item));
   }
 
-  deleteConta(id: string) {
-    this.contas.update(cs => cs.filter(c => c.id !== id));
+  deleteAccount(id: string) {
+    this.accounts.update(cs => cs.filter(c => c.id !== id));
   }
 }

@@ -1,43 +1,41 @@
-# FinançasApp
+# FinanceApp
 
-Aplicação para gestão de finanças pessoais e Open Finance.
+A modern finance management application with a focus on ease of use and visual clarity.
 
-## Estrutura do Projeto
+## Project Structure
 
-O projeto foi refatorado para seguir as melhores práticas de organização de código.
+- `frontend/`: Angular 17 application with Tailwind CSS.
+- `backend/`: FastAPI application (Python).
+- `scripts/`: Helper scripts for local development.
 
-### Backend (FastAPI)
+## Getting Started
 
-Localizado na pasta `/backend`.
-- `app/main.py`: Ponto de entrada da aplicação.
-- `app/api/`: Contém as rotas da API organizadas por módulos.
-- `app/schemas/`: Definições de modelos Pydantic.
-- `app/db/`: Simulação do banco de dados (atualmente em memória).
+### Prerequisites
+- Node.js (v18+)
+- Python (3.9+)
 
-Para rodar o backend:
+### Installation
+
+1.  **Frontend:**
+    ```bash
+    cd frontend
+    npm install
+    ```
+
+2.  **Backend:**
+    ```bash
+    cd backend
+    pip install -r requirements.txt
+    ```
+
+### Running Locally
+
+You can use the provided script:
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+./scripts/run_local.sh
 ```
 
-### Frontend (Angular)
+## Technologies Used
 
-Localizado na pasta `/frontend`.
-- `src/app/components/`: Componentes de UI reutilizáveis.
-- `src/app/services/`: Serviços para lógica de negócio e integração com a API.
-- `src/app/models/`: Interfaces TypeScript.
-- `src/app/app.component.*`: Componente principal.
-
-Para rodar o frontend:
-```bash
-cd frontend
-npm install
-npm start
-```
-
-## Próximos Passos
-- Implementar integração real com banco de dados (PostgreSQL/MongoDB).
-- Conectar o frontend à API do backend (atualmente usando mock data no serviço).
-- Adicionar autenticação de usuários.
-- Implementar integração real com Open Finance.
+- **Frontend:** Angular 17, Tailwind CSS, Phosphor Icons.
+- **Backend:** FastAPI, Pydantic.

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FinanceService } from './services/finance.service';
 import { CardResumoComponent } from './components/card-resumo/card-resumo.component';
 import { CardPizzaComponent } from './components/card-pizza/card-pizza.component';
-import { Transacao, Conta, Categoria } from './models';
+import { Transaction, Account, Category } from './models';
 
 @Component({
   selector: 'app-root',
@@ -16,41 +16,41 @@ export class AppComponent implements OnInit {
   private financeService = inject(FinanceService);
 
   // Constants & Configs
-  mapIcones = this.financeService.mapIcones;
-  objCoresDisp = ['bg-red-100 text-red-600', 'bg-orange-100 text-orange-600', 'bg-yellow-100 text-yellow-600', 'bg-green-100 text-green-600', 'bg-teal-100 text-teal-600', 'bg-blue-100 text-blue-600', 'bg-indigo-100 text-indigo-600', 'bg-purple-100 text-purple-600', 'bg-pink-100 text-pink-600', 'bg-gray-100 text-gray-600'];
-  objCoresCartao = ['bg-slate-800', 'bg-blue-600', 'bg-purple-600', 'bg-orange-500', 'bg-emerald-600', 'bg-red-600', 'bg-pink-600', 'bg-cyan-600'];
-  chavesIcones = Object.keys(this.mapIcones);
+  iconMap = this.financeService.iconMap;
+  availableColors = ['bg-red-100 text-red-600', 'bg-orange-100 text-orange-600', 'bg-yellow-100 text-yellow-600', 'bg-green-100 text-green-600', 'bg-teal-100 text-teal-600', 'bg-blue-100 text-blue-600', 'bg-indigo-100 text-indigo-600', 'bg-purple-100 text-purple-600', 'bg-pink-100 text-pink-600', 'bg-gray-100 text-gray-600'];
+  cardColors = ['bg-slate-800', 'bg-blue-600', 'bg-purple-600', 'bg-orange-500', 'bg-emerald-600', 'bg-red-600', 'bg-pink-600', 'bg-cyan-600'];
+  iconKeys = Object.keys(this.iconMap);
 
   // View State
-  abaAtiva = signal<'dashboard'|'transacoes'|'cartoes'|'contas'|'categorias'>('dashboard');
-  mesAnoAtual = signal(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
+  activeTab = signal<'dashboard'|'transactions'|'cards'|'accounts'|'categories'>('dashboard');
+  currentMonthYear = signal(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
   
   // Data Signals (from Service)
-  transacoesGlobais = this.financeService.transacoesGlobais;
-  categorias = this.financeService.categorias;
-  contas = this.financeService.contas;
+  globalTransactions = this.financeService.globalTransactions;
+  categories = this.financeService.categories;
+  accounts = this.financeService.accounts;
 
   // Modals & Forms State
-  modalTransacaoAberto = signal(false);
-  formT = signal<any>({ descricao: '', valor: 0, tipo: 'despesa', categoria: '', conta: '', data: '' });
+  transactionModalOpen = signal(false);
+  transactionForm = signal<any>({ description: '', amount: 0, type: 'expense', category: '', account: '', date: '' });
 
-  formCategoriaAberto = signal(false);
-  formCategoria = signal<any>(null);
+  categoryFormOpen = signal(false);
+  categoryForm = signal<any>(null);
   
-  formContaAberto = signal(false);
-  formConta = signal<any>(null);
+  accountFormOpen = signal(false);
+  accountForm = signal<any>(null);
 
-  modalPagarAberto = signal(false);
-  faturaData = signal<any>(null);
-  faturaContaOrigem = signal('');
-  faturaErro = signal('');
+  paymentModalOpen = signal(false);
+  billData = signal<any>(null);
+  billSourceAccount = signal('');
+  billError = signal('');
 
-  abasMenu = [
-    { id: 'dashboard', label: 'Início', icon: 'ph ph-house' },
-    { id: 'transacoes', label: 'Transações', icon: 'ph ph-list-numbers' },
-    { id: 'cartoes', label: 'Cartões', icon: 'ph ph-credit-card' },
-    { id: 'contas', label: 'Contas', icon: 'ph ph-bank' },
-    { id: 'categorias', label: 'Categorias', icon: 'ph ph-tag' },
+  menuTabs = [
+    { id: 'dashboard', label: 'Home', icon: 'ph ph-house' },
+    { id: 'transactions', label: 'Transactions', icon: 'ph ph-list-numbers' },
+    { id: 'cards', label: 'Cards', icon: 'ph ph-credit-card' },
+    { id: 'accounts', label: 'Accounts', icon: 'ph ph-bank' },
+    { id: 'categories', label: 'Categories', icon: 'ph ph-tag' },
   ];
 
   ngOnInit() {
@@ -65,293 +65,293 @@ export class AppComponent implements OnInit {
 
   // --- COMPUTEDS ---
 
-  contasDebito = computed(() => this.contas().filter(c => c.tipo === 'debito'));
-  cartoes = computed(() => this.contas().filter(c => c.tipo === 'credito'));
+  debitAccounts = computed(() => this.accounts().filter(c => c.type === 'debit'));
+  creditCards = computed(() => this.accounts().filter(c => c.type === 'credit'));
   
-  cartoesExibicao = computed(() => {
-    return this.cartoes().map(cartao => {
-      const fatura = this.getResumoFatura(cartao);
+  displayCards = computed(() => {
+    return this.creditCards().map(card => {
+      const bill = this.getBillSummary(card);
       return {
-        ...cartao,
-        fatura,
-        valorFaturaFormatado: this.fm(fatura.valorFatura),
-        valorPagoFormatado: this.fm(fatura.valorPago),
-        dataAberturaFormatada: `${fatura.dataAbertura.getDate()}/${fatura.dataAbertura.getMonth() + 1}`,
-        dataFechamentoFormatada: `${fatura.dataFechamento.getDate()}/${fatura.dataFechamento.getMonth() + 1}`,
-        dataVencimentoFormatada: `${fatura.dataVencimento.getDate()}/${(fatura.dataVencimento.getMonth() + 1).toString().padStart(2, '0')}`
+        ...card,
+        bill,
+        formattedBillAmount: this.fm(bill.billAmount),
+        formattedPaidAmount: this.fm(bill.paidAmount),
+        formattedOpeningDate: `${bill.openingDate.getDate()}/${bill.openingDate.getMonth() + 1}`,
+        formattedClosingDate: `${bill.closingDate.getDate()}/${bill.closingDate.getMonth() + 1}`,
+        formattedDueDate: `${bill.dueDate.getDate()}/${(bill.dueDate.getMonth() + 1).toString().padStart(2, '0')}`
       };
     });
   });
 
-  transacoesMes = computed(() => {
-    const mes = this.mesAnoAtual();
-    return [...this.transacoesGlobais()]
-      .filter(t => String(t.data).startsWith(mes) || t.mesReferencia === mes)
-      .sort((a,b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  monthTransactions = computed(() => {
+    const month = this.currentMonthYear();
+    return [...this.globalTransactions()]
+      .filter(t => String(t.date).startsWith(month) || t.referenceMonth === month)
+      .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
 
-  transacoesExibicao = computed(() => {
-    return this.transacoesMes().map(t => {
-      const isFatura = t.tipo === 'pagamento_fatura';
-      const cat = this.getCategoria(t.categoria, isFatura);
-      const con = this.getConta(isFatura ? t.contaOrigem! : t.conta!);
+  displayTransactions = computed(() => {
+    return this.monthTransactions().map(t => {
+      const isBill = t.type === 'credit_card_payment';
+      const cat = this.getCategory(t.category, isBill);
+      const con = this.getAccount(isBill ? t.sourceAccount! : t.account!);
       return {
         ...t,
-        isFatura,
-        valorAbsoluto: Math.abs(t.valor),
-        valorFormatado: this.fm(t.valor),
-        dataFormatada: this.fd(t.data),
-        catNome: cat.nome,
-        catCor: cat.cor,
+        isBill,
+        absoluteAmount: Math.abs(t.amount),
+        formattedAmount: this.fm(t.amount),
+        formattedDate: this.fd(t.date),
+        catName: cat.name,
+        catColor: cat.color,
         catIcon: cat.iconClass,
-        contaNome: isFatura ? `Saiu de: ${con.nome}` : con.nome,
-        isDespesa: t.tipo === 'despesa' || isFatura
+        accountName: isBill ? `From: ${con.name}` : con.name,
+        isExpense: t.type === 'expense' || isBill
       };
     });
   });
 
   dash = computed(() => {
-    const tG = this.transacoesGlobais();
-    const tM = this.transacoesMes();
-    const cs = this.contas();
-    const cats = this.categorias();
+    const tG = this.globalTransactions();
+    const tM = this.monthTransactions();
+    const cs = this.accounts();
+    const cats = this.categories();
 
-    let saldoContas = 0;
-    const saldosPorContaMap: Record<string, number> = {};
-    cs.filter(c => c.tipo === 'debito').forEach(c => {
-        saldosPorContaMap[c.id] = c.saldoInicial || 0;
-        saldoContas += c.saldoInicial || 0;
+    let accountBalance = 0;
+    const balancesByAccountMap: Record<string, number> = {};
+    cs.filter(c => c.type === 'debit').forEach(c => {
+        balancesByAccountMap[c.id] = c.initialBalance || 0;
+        accountBalance += c.initialBalance || 0;
     });
 
     tG.forEach(t => {
-      const conta = cs.find(c => c.id === (t.conta || t.contaOrigem));
-      if (conta && conta.tipo === 'debito') {
-        if (t.tipo === 'receita') { saldoContas += t.valor; if(saldosPorContaMap[t.conta!] !== undefined) saldosPorContaMap[t.conta!] += t.valor; }
-        if (t.tipo === 'despesa') { saldoContas -= t.valor; if(saldosPorContaMap[t.conta!] !== undefined) saldosPorContaMap[t.conta!] -= t.valor; }
-        if (t.tipo === 'pagamento_fatura') { saldoContas -= t.valor; if(saldosPorContaMap[t.contaOrigem!] !== undefined) saldosPorContaMap[t.contaOrigem!] -= t.valor; }
+      const account = cs.find(c => c.id === (t.account || t.sourceAccount));
+      if (account && account.type === 'debit') {
+        if (t.type === 'income') { accountBalance += t.amount; if(balancesByAccountMap[t.account!] !== undefined) balancesByAccountMap[t.account!] += t.amount; }
+        if (t.type === 'expense') { accountBalance -= t.amount; if(balancesByAccountMap[t.account!] !== undefined) balancesByAccountMap[t.account!] -= t.amount; }
+        if (t.type === 'credit_card_payment') { accountBalance -= t.amount; if(balancesByAccountMap[t.sourceAccount!] !== undefined) balancesByAccountMap[t.sourceAccount!] -= t.amount; }
       }
     });
 
-    let receitasMes = 0; let despesasMes = 0;
-    const catMap: Record<string, number> = {}; const contaMap: Record<string, number> = {};
+    let monthIncomes = 0; let monthExpenses = 0;
+    const catMap: Record<string, number> = {}; const accountMap: Record<string, number> = {};
 
     tM.forEach(t => {
-      if (t.tipo === 'pagamento_fatura') return;
-      if (t.tipo === 'receita') receitasMes += t.valor;
-      else if (t.tipo === 'despesa') {
-        despesasMes += t.valor;
-        catMap[t.categoria] = (catMap[t.categoria] || 0) + t.valor;
-        contaMap[t.conta!] = (contaMap[t.conta!] || 0) + t.valor;
+      if (t.type === 'credit_card_payment') return;
+      if (t.type === 'income') monthIncomes += t.amount;
+      else if (t.type === 'expense') {
+        monthExpenses += t.amount;
+        catMap[t.category] = (catMap[t.category] || 0) + t.amount;
+        accountMap[t.account!] = (accountMap[t.account!] || 0) + t.amount;
       }
     });
 
-    const formatarGrafico = (mapa: Record<string, number>, listaBase: any[], corPadrao = 'bg-gray-100 text-gray-500') => 
-      Object.keys(mapa).map(id => {
-        const item = listaBase.find(i => i.id === id) || { nome: 'Desconhecida', cor: corPadrao };
-        return { id, nome: item.nome, valor: mapa[id], percentual: (mapa[id] / (despesasMes || 1)) * 100, corHex: item.corCartao || this.financeService.extrairHexCor(item.cor) };
-      }).sort((a, b) => b.valor - a.valor);
+    const formatChart = (map: Record<string, number>, baseList: any[], defaultColor = 'bg-gray-100 text-gray-500') => 
+      Object.keys(map).map(id => {
+        const item = baseList.find(i => i.id === id) || { name: 'Unknown', color: defaultColor };
+        return { id, name: item.name, amount: map[id], percentage: (map[id] / (monthExpenses || 1)) * 100, hexColor: item.cardColor || this.financeService.extractHexColor(item.color) };
+      }).sort((a, b) => b.amount - a.amount);
 
-    const coresContas = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
-    const contasComCor = cs.map((c, i) => ({ ...c, corCartao: coresContas[i % coresContas.length] }));
+    const accountColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
+    const accountsWithColor = cs.map((c, i) => ({ ...c, cardColor: accountColors[i % accountColors.length] }));
 
     return { 
-      saldoContas, receitasMes, despesasMes, 
-      despesasPorCategoria: formatarGrafico(catMap, cats), 
-      despesasPorConta: formatarGrafico(contaMap, contasComCor),
-      saldosPorContaExibicao: cs.filter(c => c.tipo === 'debito').map(c => ({ ...c, saldo: saldosPorContaMap[c.id] || 0, saldoFormatado: this.fm(saldosPorContaMap[c.id] || 0) }))
+      accountBalance, monthIncomes, monthExpenses, 
+      expensesByCategory: formatChart(catMap, cats), 
+      expensesByAccount: formatChart(accountMap, accountsWithColor),
+      displayAccountBalances: cs.filter(c => c.type === 'debit').map(c => ({ ...c, balance: balancesByAccountMap[c.id] || 0, formattedBalance: this.fm(balancesByAccountMap[c.id] || 0) }))
     };
   });
 
-  tituloHeader = computed(() => {
-    const map: Record<string, string> = { dashboard: 'Visão Geral', transacoes: 'Transações', cartoes: 'Cartões', contas: 'Contas', categorias: 'Categorias' };
-    return map[this.abaAtiva()] || 'App';
+  headerTitle = computed(() => {
+    const map: Record<string, string> = { dashboard: 'Overview', transactions: 'Transactions', cards: 'Cards', accounts: 'Accounts', categories: 'Categories' };
+    return map[this.activeTab()] || 'App';
   });
 
-  nomeMesAtual = computed(() => {
-    const [ano, mes] = this.mesAnoAtual().split('-');
-    const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    return `${nomesMeses[parseInt(mes) - 1]} ${ano}`;
+  currentMonthName = computed(() => {
+    const [year, month] = this.currentMonthYear().split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
   });
 
-  resumoCards = computed(() => [
-    { titulo: 'Saldo em Contas', valor: this.dash().saldoContas, iconeClass: 'ph ph-wallet', bgIcon: '', destaque: true, tooltip: 'Soma de todas as contas correntes' },
-    { titulo: 'Receitas do Mês', valor: this.dash().receitasMes, iconeClass: 'ph ph-trend-up text-green-600', bgIcon: 'bg-green-100', destaque: false, tooltip: '' },
-    { titulo: 'Despesas do Mês', valor: this.dash().despesasMes, iconeClass: 'ph ph-trend-down text-red-600', bgIcon: 'bg-red-100', destaque: false, tooltip: '' }
+  summaryCards = computed(() => [
+    { title: 'Account Balance', amount: this.dash().accountBalance, iconClass: 'ph ph-wallet', bgIcon: '', highlight: true, tooltip: 'Sum of all checking accounts' },
+    { title: 'Month Incomes', amount: this.dash().monthIncomes, iconClass: 'ph ph-trend-up text-green-600', bgIcon: 'bg-green-100', highlight: false, tooltip: '' },
+    { title: 'Month Expenses', amount: this.dash().monthExpenses, iconClass: 'ph ph-trend-down text-red-600', bgIcon: 'bg-red-100', highlight: false, tooltip: '' }
   ]);
 
-  pizzaCards = computed(() => [
-    { titulo: 'Gastos por Categoria (Mês)', dados: this.dash().despesasPorCategoria },
-    { titulo: 'Gastos por Conta/Cartão (Mês)', dados: this.dash().despesasPorConta }
+  chartCards = computed(() => [
+    { title: 'Expenses by Category (Month)', data: this.dash().expensesByCategory },
+    { title: 'Expenses by Account/Card (Month)', data: this.dash().expensesByAccount }
   ]);
 
   // --- ACTIONS ---
 
-  fm(valor: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0); }
-  fd(dataString: string) {
-    if (!dataString) return '';
-    const [ano, mes, dia] = dataString.split('-');
-    return `${dia}/${mes}/${ano}`;
+  fm(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0); }
+  fd(dateString: string) {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
   }
 
-  alterarMes(delta: number) {
-    const [ano, mes] = this.mesAnoAtual().split('-').map(Number);
-    let novaData = new Date(ano, mes - 1 + delta, 1);
-    this.mesAnoAtual.set(`${novaData.getFullYear()}-${String(novaData.getMonth() + 1).padStart(2, '0')}`);
+  changeMonth(delta: number) {
+    const [year, month] = this.currentMonthYear().split('-').map(Number);
+    let newDate = new Date(year, month - 1 + delta, 1);
+    this.currentMonthYear.set(`${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`);
   }
 
-  getCategoria(id: string, isFatura: boolean) {
-    if (isFatura) return { nome: 'Transferência', cor: 'bg-indigo-100 text-indigo-600', iconClass: 'ph ph-arrows-left-right' };
-    const cat = this.categorias().find(c => c.id === id);
-    return cat ? { ...cat, iconClass: this.mapIcones[cat.iconName] || 'ph ph-question' } : { nome: 'Desconhecida', cor: 'bg-gray-100 text-gray-500', iconClass: 'ph ph-question' };
+  getCategory(id: string, isBill: boolean) {
+    if (isBill) return { name: 'Transfer', color: 'bg-indigo-100 text-indigo-600', iconClass: 'ph ph-arrows-left-right' };
+    const cat = this.categories().find(c => c.id === id);
+    return cat ? { ...cat, iconClass: this.iconMap[cat.iconName] || 'ph ph-question' } : { name: 'Unknown', color: 'bg-gray-100 text-gray-500', iconClass: 'ph ph-question' };
   }
 
-  getConta(id: string) { return this.contas().find(c => c.id === id) || { nome: 'Desconhecida' }; }
+  getAccount(id: string) { return this.accounts().find(c => c.id === id) || { name: 'Unknown' }; }
 
-  abrirModalTransacao(t: any = null) {
-    if (t) { this.formT.set({ ...t }); } 
+  openTransactionModal(t: any = null) {
+    if (t) { this.transactionForm.set({ ...t }); } 
     else {
-      const cat = this.categorias().find(c => c.tipo === 'despesa');
-      const con = this.contas()[0];
-      this.formT.set({ descricao: '', valor: '', tipo: 'despesa', categoria: cat?.id || '', conta: con?.id || '', data: new Date().toISOString().split('T')[0] });
+      const cat = this.categories().find(c => c.type === 'expense');
+      const con = this.accounts()[0];
+      this.transactionForm.set({ description: '', amount: '', type: 'expense', category: cat?.id || '', account: con?.id || '', date: new Date().toISOString().split('T')[0] });
     }
-    this.modalTransacaoAberto.set(true);
+    this.transactionModalOpen.set(true);
   }
 
-  fecharModalTransacao() { this.modalTransacaoAberto.set(false); }
-  updateForm(field: string, value: any) { this.formT.set({ ...this.formT(), [field]: value }); }
+  closeTransactionModal() { this.transactionModalOpen.set(false); }
+  updateForm(field: string, value: any) { this.transactionForm.set({ ...this.transactionForm(), [field]: value }); }
   
-  setTipo(tipo: string) {
-    const cat = this.categorias().find(c => c.tipo === tipo);
-    this.formT.set({ ...this.formT(), tipo, categoria: cat?.id || '' });
+  setType(type: string) {
+    const cat = this.categories().find(c => c.type === type);
+    this.transactionForm.set({ ...this.transactionForm(), type, category: cat?.id || '' });
   }
 
-  salvarTransacao() {
-    const form = this.formT();
-    form.valor = parseFloat(form.valor.toString().replace(',', '.'));
+  saveTransaction() {
+    const form = this.transactionForm();
+    form.amount = parseFloat(form.amount.toString().replace(',', '.'));
     if (!form.id) {
       form.id = Math.random().toString(36).substring(2, 9);
-      this.financeService.addTransacao(form);
+      this.financeService.addTransaction(form);
     } else {
-      this.financeService.updateTransacao(form);
+      this.financeService.updateTransaction(form);
     }
-    this.fecharModalTransacao();
+    this.closeTransactionModal();
   }
 
-  deletarTransacao(id: string) { this.financeService.deleteTransacao(id); }
+  deleteTransaction(id: string) { this.financeService.deleteTransaction(id); }
 
-  abrirFormCategoria(cat: any = null) {
-    this.formCategoria.set(cat ? {...cat} : { nome: '', tipo: 'despesa', cor: this.objCoresDisp[0], iconName: 'Tags' });
-    this.formCategoriaAberto.set(true);
+  openCategoryForm(cat: any = null) {
+    this.categoryForm.set(cat ? {...cat} : { name: '', type: 'expense', color: this.availableColors[0], iconName: 'Tags' });
+    this.categoryFormOpen.set(true);
   }
-  fecharFormCategoria() { this.formCategoriaAberto.set(false); }
-  updateFormCategoria(field: string, value: any) { this.formCategoria.set({ ...this.formCategoria(), [field]: value }); }
-  salvarCategoria() {
-    const form = this.formCategoria();
-    if(form.id) this.financeService.updateCategoria(form);
-    else this.financeService.addCategoria({ ...form, id: Math.random().toString(36).substring(2, 9) });
-    this.fecharFormCategoria();
+  closeCategoryForm() { this.categoryFormOpen.set(false); }
+  updateCategoryForm(field: string, value: any) { this.categoryForm.set({ ...this.categoryForm(), [field]: value }); }
+  saveCategory() {
+    const form = this.categoryForm();
+    if(form.id) this.financeService.updateCategory(form);
+    else this.financeService.addCategory({ ...form, id: Math.random().toString(36).substring(2, 9) });
+    this.closeCategoryForm();
   }
-  deletarCategoria(id: string) { this.financeService.deleteCategoria(id); }
+  deleteCategory(id: string) { this.financeService.deleteCategory(id); }
 
-  abrirFormConta(isCartao: boolean, conta: any = null) {
-    this.formConta.set(conta ? {...conta} : (
-      isCartao 
-        ? { nome: '', tipo: 'credito', diaFechamento: 1, diaVencimento: 10, finalCartao: '1234', corCartao: this.objCoresCartao[0] }
-        : { nome: '', tipo: 'debito', saldoInicial: 0 }
+  openAccountForm(isCard: boolean, account: any = null) {
+    this.accountForm.set(account ? {...account} : (
+      isCard 
+        ? { name: '', type: 'credit', closingDay: 1, dueDay: 10, cardLastDigits: '1234', cardColor: this.cardColors[0] }
+        : { name: '', type: 'debit', initialBalance: 0 }
     ));
-    this.formContaAberto.set(true);
+    this.accountFormOpen.set(true);
   }
-  fecharFormConta() { this.formContaAberto.set(false); }
-  updateFormConta(field: string, value: any) { this.formConta.set({ ...this.formConta(), [field]: value }); }
-  salvarConta() {
-    const form = this.formConta();
-    if(form.tipo === 'debito') form.saldoInicial = parseFloat(form.saldoInicial.toString().replace(',', '.')) || 0;
-    if(form.id) this.financeService.updateConta(form);
-    else this.financeService.addConta({ ...form, id: Math.random().toString(36).substring(2, 9) });
-    this.fecharFormConta();
+  closeAccountForm() { this.accountFormOpen.set(false); }
+  updateAccountForm(field: string, value: any) { this.accountForm.set({ ...this.accountForm(), [field]: value }); }
+  saveAccount() {
+    const form = this.accountForm();
+    if(form.type === 'debit') form.initialBalance = parseFloat(form.initialBalance.toString().replace(',', '.')) || 0;
+    if(form.id) this.financeService.updateAccount(form);
+    else this.financeService.addAccount({ ...form, id: Math.random().toString(36).substring(2, 9) });
+    this.closeAccountForm();
   }
-  deletarConta(id: string) { this.financeService.deleteConta(id); }
+  deleteAccount(id: string) { this.financeService.deleteAccount(id); }
 
-  getResumoFatura(cartao: any) {
-    const [ano, mes] = this.mesAnoAtual().split('-').map(Number);
-    const diaF = cartao.diaFechamento || 1;
-    const diaV = cartao.diaVencimento || 10;
+  getBillSummary(card: any) {
+    const [year, month] = this.currentMonthYear().split('-').map(Number);
+    const dayC = card.closingDay || 1;
+    const dayD = card.dueDay || 10;
     
-    const dataFechamento = new Date(ano, mes - 1, diaF);
-    const dataAbertura = new Date(ano, mes - 2, diaF);
-    const dataVencimento = new Date(ano, diaV <= diaF ? mes : mes - 1, diaV);
+    const closingDate = new Date(year, month - 1, dayC);
+    const openingDate = new Date(year, month - 2, dayC);
+    const dueDate = new Date(year, dayD <= dayC ? month : month - 1, dayD);
     
-    let totalDespesas = 0; let totalReceitas = 0; let valorPago = 0;
+    let totalExpenses = 0; let totalIncomes = 0; let paidAmount = 0;
 
-    this.transacoesGlobais().forEach(t => {
-      if (t.tipo === 'pagamento_fatura' && t.contaDestino === cartao.id && t.mesReferencia === this.mesAnoAtual()) {
-        valorPago += t.valor; return;
+    this.globalTransactions().forEach(t => {
+      if (t.type === 'credit_card_payment' && t.destinationAccount === card.id && t.referenceMonth === this.currentMonthYear()) {
+        paidAmount += t.amount; return;
       }
-      if (t.conta === cartao.id && t.tipo !== 'pagamento_fatura') {
-        const dataT = new Date(t.data + 'T12:00:00'); 
-        if (dataT >= dataAbertura && dataT < dataFechamento) {
-          if (t.tipo === 'despesa') totalDespesas += t.valor;
-          if (t.tipo === 'receita') totalReceitas += t.valor;
+      if (t.account === card.id && t.type !== 'credit_card_payment') {
+        const dateT = new Date(t.date + 'T12:00:00'); 
+        if (dateT >= openingDate && dateT < closingDate) {
+          if (t.type === 'expense') totalExpenses += t.amount;
+          if (t.type === 'income') totalIncomes += t.amount;
         }
       }
     });
 
-    const valorFatura = Math.max(0, totalDespesas - totalReceitas);
-    const hoje = new Date();
-    let status = 'aberta';
-    if (valorPago >= valorFatura && valorFatura > 0) status = 'paga';
-    else if (hoje >= dataFechamento) status = 'fechada';
-    if (valorFatura === 0 && valorPago === 0) status = 'zerada';
+    const billAmount = Math.max(0, totalExpenses - totalIncomes);
+    const today = new Date();
+    let status = 'open';
+    if (paidAmount >= billAmount && billAmount > 0) status = 'paid';
+    else if (today >= closingDate) status = 'closed';
+    if (billAmount === 0 && paidAmount === 0) status = 'zeroed';
 
-    return { dataAbertura, dataFechamento, dataVencimento, valorFatura, valorPago, status };
+    return { openingDate, closingDate, dueDate, billAmount, paidAmount, status };
   }
 
-  abrirModalPagarFatura(cartao: any, fatura: any) {
-    this.faturaData.set({ cartao, fatura });
-    this.faturaErro.set('');
-    const contaDebito = this.contas().find(c => c.tipo === 'debito');
-    this.faturaContaOrigem.set(contaDebito ? contaDebito.id : '');
-    this.modalPagarAberto.set(true);
+  openPayBillModal(card: any, bill: any) {
+    this.billData.set({ card, bill });
+    this.billError.set('');
+    const debitAccount = this.accounts().find(c => c.type === 'debit');
+    this.billSourceAccount.set(debitAccount ? debitAccount.id : '');
+    this.paymentModalOpen.set(true);
   }
-  fecharModalPagarFatura() { this.modalPagarAberto.set(false); }
+  closePayBillModal() { this.paymentModalOpen.set(false); }
 
   getBtnLabel() {
-    const t = this.formT();
-    if (t.id) return 'Salvar Alterações';
-    return t.tipo === 'despesa' ? 'Salvar Despesa' : 'Salvar Receita';
+    const t = this.transactionForm();
+    if (t.id) return 'Save Changes';
+    return t.type === 'expense' ? 'Save Expense' : 'Save Income';
   }
 
-  confirmarPagamentoFatura() {
-    const { cartao, fatura } = this.faturaData();
-    const contaOrigem = this.faturaContaOrigem();
-    if (!contaOrigem) { this.faturaErro.set('Selecione uma conta para pagar a fatura.'); return; }
+  confirmBillPayment() {
+    const { card, bill } = this.billData();
+    const sourceAccount = this.billSourceAccount();
+    if (!sourceAccount) { this.billError.set('Select an account to pay the bill.'); return; }
 
-    const contaDebito = this.dash().saldosPorContaExibicao.find((c: any) => c.id === contaOrigem);
-    if (contaDebito && fatura.valorFatura > (contaDebito as any).saldo!) {
-      this.faturaErro.set(`Saldo insuficiente. Você tem apenas ${this.fm((contaDebito as any).saldo!)} nesta conta.`);
+    const debitAccount = this.dash().displayAccountBalances.find((c: any) => c.id === sourceAccount);
+    if (debitAccount && bill.billAmount > (debitAccount as any).balance!) {
+      this.billError.set(`Insufficient balance. You have only ${this.fm((debitAccount as any).balance!)} in this account.`);
       return;
     }
 
-    const transacaoFatura = {
+    const billTransaction = {
       id: Math.random().toString(36).substring(2, 9),
-      tipo: 'pagamento_fatura',
-      descricao: `Pagamento Fatura ${cartao.nome}`,
-      valor: fatura.valorFatura,
-      categoria: 'outros',
-      contaOrigem: contaOrigem,
-      contaDestino: cartao.id,
-      data: new Date().toISOString().split('T')[0],
-      mesReferencia: this.mesAnoAtual()
+      type: 'credit_card_payment',
+      description: `Bill Payment ${card.name}`,
+      amount: bill.billAmount,
+      category: 'others',
+      sourceAccount: sourceAccount,
+      destinationAccount: card.id,
+      date: new Date().toISOString().split('T')[0],
+      referenceMonth: this.currentMonthYear()
     };
     
-    this.financeService.addTransacao(transacaoFatura as Transacao);
-    this.fecharModalPagarFatura();
+    this.financeService.addTransaction(billTransaction as Transaction);
+    this.closePayBillModal();
   }
 
-  getGradient(dados: any[]) {
+  getGradient(data: any[]) {
     let cumulative = 0;
-    return 'conic-gradient(' + dados.map(d => {
-      const start = cumulative; cumulative += d.percentual; return `${d.corHex} ${start}% ${cumulative}%`;
+    return 'conic-gradient(' + data.map(d => {
+      const start = cumulative; cumulative += d.percentage; return `${d.hexColor} ${start}% ${cumulative}%`;
     }).join(', ') + ')';
   }
 }

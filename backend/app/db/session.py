@@ -1,6 +1,6 @@
 from typing import List
-from ..schemas.schemas import Transacao, Conta
+from ..schemas.schemas import Transaction, Account
 
 # Simulation of a database
-db_transacoes: List[Transacao] = []
-db_contas: List[Conta] = []
+db_transactions: List[Transaction] = []
+db_accounts: List[Account] = []

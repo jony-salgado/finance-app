@@ -1,33 +1,33 @@
-export interface Transacao {
+export interface Transaction {
   id: string;
-  descricao: string;
-  valor: number;
-  tipo: string;
-  categoria: string;
-  conta?: string;
-  contaOrigem?: string;
-  contaDestino?: string;
-  data: string;
-  mesReferencia?: string;
+  description: string;
+  amount: number;
+  type: string;
+  category: string;
+  account?: string;
+  sourceAccount?: string;
+  destinationAccount?: string;
+  date: string;
+  referenceMonth?: string;
 }
 
-export interface Conta {
+export interface Account {
   id: string;
-  nome: string;
-  tipo: string;
-  saldoInicial?: number;
-  diaFechamento?: number;
-  diaVencimento?: number;
-  finalCartao?: string;
-  corCartao?: string;
-  saldo?: number;
+  name: string;
+  type: string;
+  initialBalance?: number;
+  closingDay?: number;
+  dueDay?: number;
+  cardLastDigits?: string;
+  cardColor?: string;
+  balance?: number;
 }
 
-export interface Categoria {
+export interface Category {
   id: string;
-  nome: string;
+  name: string;
   iconName: string;
-  cor: string;
-  tipo: string;
+  color: string;
+  type: string;
   iconClass?: string;
 }

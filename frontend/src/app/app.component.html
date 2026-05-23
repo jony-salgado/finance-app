@@ -4,22 +4,22 @@
   <nav class="fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around p-2 z-10 md:relative md:w-64 md:flex-col md:justify-start md:border-t-0 md:border-r md:h-screen md:p-6 md:overflow-y-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:shadow-none">
     <div class="hidden md:flex items-center gap-2 mb-8 text-indigo-600">
       <i class="ph ph-wallet text-3xl"></i>
-      <span class="text-2xl font-bold tracking-tight">FinançasApp</span>
+      <span class="text-2xl font-bold tracking-tight">FinanceApp</span>
     </div>
     <div class="flex md:flex-col w-full justify-around md:justify-start gap-1 overflow-x-auto md:overflow-visible">
-      @for (aba of abasMenu; track aba.id) {
-        <button (click)="abaAtiva.set($any(aba.id))"
+      @for (tab of menuTabs; track tab.id) {
+        <button (click)="activeTab.set($any(tab.id))"
           class="flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 rounded-xl transition min-w-[64px]"
-          [class.text-indigo-600]="abaAtiva() === aba.id" [class.md:bg-indigo-50]="abaAtiva() === aba.id"
-          [class.text-slate-400]="abaAtiva() !== aba.id" [class.hover:text-slate-600]="abaAtiva() !== aba.id" [class.md:hover:bg-slate-100]="abaAtiva() !== aba.id">
-          <i [class]="aba.icon + ' text-2xl ' + (abaAtiva() === aba.id ? 'ph-fill' : '')"></i>
-          <span class="text-[10px] md:text-base font-medium" [class.font-semibold]="abaAtiva() === aba.id">{{ aba.label }}</span>
+          [class.text-indigo-600]="activeTab() === tab.id" [class.md:bg-indigo-50]="activeTab() === tab.id"
+          [class.text-slate-400]="activeTab() !== tab.id" [class.hover:text-slate-600]="activeTab() !== tab.id" [class.md:hover:bg-slate-100]="activeTab() !== tab.id">
+          <i [class]="tab.icon + ' text-2xl ' + (activeTab() === tab.id ? 'ph-fill' : '')"></i>
+          <span class="text-[10px] md:text-base font-medium" [class.font-semibold]="activeTab() === tab.id">{{ tab.label }}</span>
         </button>
       }
     </div>
     <div class="hidden md:block mt-auto pt-6">
-      <button (click)="abrirModalTransacao()" class="bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 w-full active:scale-95">
-        <i class="ph ph-plus text-xl"></i> <span class="font-semibold">Nova Transação</span>
+      <button (click)="openTransactionModal()" class="bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 w-full active:scale-95">
+        <i class="ph ph-plus text-xl"></i> <span class="font-semibold">New Transaction</span>
       </button>
     </div>
   </nav>
@@ -28,96 +28,96 @@
   <main class="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full h-screen overflow-y-auto">
     <header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8 pt-2 md:pt-0">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">{{ tituloHeader() }}</h1>
-        <p class="text-slate-500 text-sm mt-1">Gerencie suas finanças com inteligência.</p>
+        <h1 class="text-2xl font-bold text-slate-900">{{ headerTitle() }}</h1>
+        <p class="text-slate-500 text-sm mt-1">Manage your finances with intelligence.</p>
       </div>
-      @if (abaAtiva() === 'dashboard' || abaAtiva() === 'transacoes' || abaAtiva() === 'cartoes') {
+      @if (activeTab() === 'dashboard' || activeTab() === 'transactions' || activeTab() === 'cards') {
         <div class="flex justify-end">
           <div class="flex items-center justify-between w-full md:w-auto gap-4 bg-white rounded-xl shadow-sm border border-slate-100 p-1.5 px-3">
-            <button (click)="alterarMes(-1)" class="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-lg transition"><i class="ph ph-caret-left text-lg"></i></button>
-            <span class="font-semibold text-slate-700 min-w-[80px] text-center text-sm">{{ nomeMesAtual() }}</span>
-            <button (click)="alterarMes(1)" class="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-lg transition"><i class="ph ph-caret-right text-lg"></i></button>
+            <button (click)="changeMonth(-1)" class="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-lg transition"><i class="ph ph-caret-left text-lg"></i></button>
+            <span class="font-semibold text-slate-700 min-w-[80px] text-center text-sm">{{ currentMonthName() }}</span>
+            <button (click)="changeMonth(1)" class="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 rounded-lg transition"><i class="ph ph-caret-right text-lg"></i></button>
           </div>
         </div>
       }
     </header>
 
-    <!-- DASHBOARD ABA -->
-    @if (abaAtiva() === 'dashboard') {
+    <!-- DASHBOARD TAB -->
+    @if (activeTab() === 'dashboard') {
       <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <!-- Cards Resumo -->
+        <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          @for (card of resumoCards(); track card.titulo) {
+          @for (card of summaryCards(); track card.title) {
             <app-card-resumo 
-              [titulo]="card.titulo" 
-              [valor]="card.valor" 
-              [iconeClass]="card.iconeClass" 
-              [bgIcon]="card.bgIcon" 
-              [destaque]="card.destaque" 
+              [title]="card.title" 
+              [amount]="card.amount" 
+              [iconClass]="card.iconClass" 
+              [iconBg]="card.bgIcon" 
+              [isHighlighted]="card.highlight" 
               [tooltip]="card.tooltip">
             </app-card-resumo>
           }
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Saldo por Conta -->
+          <!-- Balance by Account -->
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full min-h-[200px] md:col-span-2">
-            <div class="flex items-center gap-2 mb-6"><i class="ph ph-bank text-xl text-slate-400"></i><h3 class="text-slate-700 font-bold">Saldo por Conta</h3></div>
+            <div class="flex items-center gap-2 mb-6"><i class="ph ph-bank text-xl text-slate-400"></i><h3 class="text-slate-700 font-bold">Balance by Account</h3></div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
-              @for (contaEx of dash().saldosPorContaExibicao; track contaEx.id) {
+              @for (accEx of dash().displayAccountBalances; track accEx.id) {
                 <div class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-100 transition-colors">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-white shadow-sm text-indigo-600 flex items-center justify-center"><i class="ph ph-bank"></i></div>
-                    <span class="font-semibold text-slate-700">{{ contaEx.nome }}</span>
+                    <span class="font-semibold text-slate-700">{{ accEx.name }}</span>
                   </div>
-                  <span class="font-bold text-lg" [class.text-red-600]="contaEx.saldo < 0" [class.text-slate-800]="contaEx.saldo >= 0">{{ contaEx.saldoFormatado }}</span>
+                  <span class="font-bold text-lg" [class.text-red-600]="accEx.balance < 0" [class.text-slate-800]="accEx.balance >= 0">{{ accEx.formattedBalance }}</span>
                 </div>
               }
-              @if (dash().saldosPorContaExibicao.length === 0) { <p class="text-slate-400 text-sm py-4 col-span-full text-center">Nenhuma conta cadastrada.</p> }
+              @if (dash().displayAccountBalances.length === 0) { <p class="text-slate-400 text-sm py-4 col-span-full text-center">No accounts registered.</p> }
             </div>
           </div>
 
-          <!-- Gráficos de Pizza -->
-          @for (pizza of pizzaCards(); track pizza.titulo) {
+          <!-- Charts -->
+          @for (chart of chartCards(); track chart.title) {
             <app-card-pizza 
-              [titulo]="pizza.titulo" 
-              [dados]="pizza.dados">
+              [title]="chart.title" 
+              [data]="chart.data">
             </app-card-pizza>
           }
         </div>
       </div>
     }
 
-    <!-- TRANSAÇÕES ABA -->
-    @if (abaAtiva() === 'transacoes') {
+    <!-- TRANSACTIONS TAB -->
+    @if (activeTab() === 'transactions') {
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
-        @if (transacoesExibicao().length === 0) {
-          <div class="text-center py-12"><i class="ph ph-list-numbers text-5xl text-slate-300 mb-4 block"></i><p class="text-slate-500 font-medium">Nenhuma transação encontrada neste mês.</p></div>
+        @if (displayTransactions().length === 0) {
+          <div class="text-center py-12"><i class="ph ph-list-numbers text-5xl text-slate-300 mb-4 block"></i><p class="text-slate-500 font-medium">No transactions found this month.</p></div>
         } @else {
           <div class="space-y-3">
-            @for (t of transacoesExibicao(); track t.id) {
+            @for (t of displayTransactions(); track t.id) {
               <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group" 
-                   [class.bg-indigo-50]="t.isFatura" 
-                   [class.bg-opacity-30]="t.isFatura" 
-                   [class.hover:bg-slate-50]="!t.isFatura">
+                   [class.bg-indigo-50]="t.isBill" 
+                   [class.bg-opacity-30]="t.isBill" 
+                   [class.hover:bg-slate-50]="!t.isBill">
                 <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-full flex items-center justify-center {{t.catCor}}">
+                  <div class="w-12 h-12 rounded-full flex items-center justify-center {{t.catColor}}">
                     <i [class]="t.catIcon + ' text-xl'"></i>
                   </div>
                   <div>
-                    <p class="font-semibold text-slate-800">{{ t.descricao }}</p>
+                    <p class="font-semibold text-slate-800">{{ t.description }}</p>
                     <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                      <span>{{ t.dataFormatada }}</span><span>•</span><span><i class="ph ph-credit-card"></i> {{ t.contaNome }}</span>
+                      <span>{{ t.formattedDate }}</span><span>•</span><span><i class="ph ph-credit-card"></i> {{ t.accountName }}</span>
                     </div>
                   </div>
                 </div>
                 <div class="flex items-center gap-3">
-                  <span class="font-bold" [class.text-red-600]="t.isDespesa" [class.text-green-600]="!t.isDespesa">
-                    {{ t.isDespesa ? '-' : '+' }}{{ t.valorFormatado }}
+                  <span class="font-bold" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
+                    {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
                   </span>
                   <div class="flex md:opacity-0 group-hover:opacity-100 transition">
-                    @if (!t.isFatura) { <button (click)="abrirModalTransacao(t)" class="p-2 text-slate-300 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button> }
-                    <button (click)="deletarTransacao(t.id)" class="p-2 text-slate-300 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
+                    @if (!t.isBill) { <button (click)="openTransactionModal(t)" class="p-2 text-slate-300 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button> }
+                    <button (click)="deleteTransaction(t.id)" class="p-2 text-slate-300 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
                   </div>
                 </div>
               </div>
@@ -127,73 +127,73 @@
       </div>
     }
 
-    <!-- CARTÕES ABA -->
-    @if (abaAtiva() === 'cartoes') {
+    <!-- CARDS TAB -->
+    @if (activeTab() === 'cards') {
       <div class="space-y-6 animate-in fade-in duration-300">
         <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <h2 class="font-bold text-slate-800">Meus Cartões</h2>
-          <button (click)="abrirFormConta(true)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ Novo Cartão</button>
+          <h2 class="font-bold text-slate-800">My Cards</h2>
+          <button (click)="openAccountForm(true)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ New Card</button>
         </div>
-        @if (cartoesExibicao().length === 0) { <p class="text-center text-slate-500 py-10">Nenhum cartão cadastrado.</p> }
+        @if (displayCards().length === 0) { <p class="text-center text-slate-500 py-10">No cards registered.</p> }
         
-        <!-- Form Novo/Editar Cartão -->
-        @if (formContaAberto() && formConta()?.tipo === 'credito') {
-          <form (submit)="$event.preventDefault(); salvarConta()" class="bg-white p-6 rounded-2xl border border-slate-200 mb-6 space-y-4 shadow-sm animate-in slide-in-from-top-4">
-            <h3 class="font-bold text-slate-700 mb-4">{{ formConta()?.id ? 'Editar Cartão' : 'Novo Cartão' }}</h3>
+        <!-- New/Edit Card Form -->
+        @if (accountFormOpen() && accountForm()?.type === 'credit') {
+          <form (submit)="$event.preventDefault(); saveAccount()" class="bg-white p-6 rounded-2xl border border-slate-200 mb-6 space-y-4 shadow-sm animate-in slide-in-from-top-4">
+            <h3 class="font-bold text-slate-700 mb-4">{{ accountForm()?.id ? 'Edit Card' : 'New Card' }}</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nome do Cartão</label><input type="text" required [value]="formConta()?.nome" (input)="updateFormConta('nome', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Final do Cartão (4 dígitos)</label><input type="text" maxlength="4" required [value]="formConta()?.finalCartao || ''" (input)="updateFormConta('finalCartao', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" placeholder="1234" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Dia do Fechamento</label><input type="number" min="1" max="31" required [value]="formConta()?.diaFechamento || 1" (input)="updateFormConta('diaFechamento', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Dia do Vencimento</label><input type="number" min="1" max="31" required [value]="formConta()?.diaVencimento || 10" (input)="updateFormConta('diaVencimento', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Card Name</label><input type="text" required [value]="accountForm()?.name" (input)="updateAccountForm('name', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Last Digits (4 digits)</label><input type="text" maxlength="4" required [value]="accountForm()?.cardLastDigits || ''" (input)="updateAccountForm('cardLastDigits', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" placeholder="1234" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Closing Day</label><input type="number" min="1" max="31" required [value]="accountForm()?.closingDay || 1" (input)="updateAccountForm('closingDay', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Due Day</label><input type="number" min="1" max="31" required [value]="accountForm()?.dueDay || 10" (input)="updateAccountForm('dueDay', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-2">Cor do Cartão</label>
+              <label class="block text-xs font-semibold text-slate-500 mb-2">Card Color</label>
               <div class="flex gap-2 flex-wrap">
-                @for (cor of objCoresCartao; track cor) {
-                  <button type="button" (click)="updateFormConta('corCartao', cor)" class="w-8 h-8 rounded-full shadow-sm {{cor}}" [class.ring-2]="formConta()?.corCartao === cor" [class.ring-offset-2]="formConta()?.corCartao === cor" [class.ring-indigo-400]="formConta()?.corCartao === cor"></button>
+                @for (color of cardColors; track color) {
+                  <button type="button" (click)="updateAccountForm('cardColor', color)" class="w-8 h-8 rounded-full shadow-sm {{color}}" [class.ring-2]="accountForm()?.cardColor === color" [class.ring-offset-2]="accountForm()?.cardColor === color" [class.ring-indigo-400]="accountForm()?.cardColor === color"></button>
                 }
               </div>
             </div>
-            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="fecharFormConta()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-lg">Cancelar</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Salvar</button></div>
+            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="closeAccountForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save</button></div>
           </form>
         }
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          @for (c of cartoesExibicao(); track c.id) {
+          @for (c of displayCards(); track c.id) {
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden group">
-              <div class="{{ c.corCartao || 'bg-slate-800' }} p-6 text-white relative">
+              <div class="{{ c.cardColor || 'bg-slate-800' }} p-6 text-white relative">
                 <div class="flex justify-between items-start mb-8">
                   <div class="w-10 h-8 bg-white/20 rounded flex items-center justify-center backdrop-blur-sm"><div class="w-6 h-4 bg-amber-200/50 rounded-sm"></div></div>
                   <div class="flex gap-2 relative z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <button (click)="abrirFormConta(true, c)" class="p-1 hover:bg-white/20 rounded"><i class="ph ph-pencil-simple"></i></button>
-                     <button (click)="deletarConta(c.id)" class="p-1 hover:bg-white/20 rounded text-red-200"><i class="ph ph-trash"></i></button>
+                     <button (click)="openAccountForm(true, c)" class="p-1 hover:bg-white/20 rounded"><i class="ph ph-pencil-simple"></i></button>
+                     <button (click)="deleteAccount(c.id)" class="p-1 hover:bg-white/20 rounded text-red-200"><i class="ph ph-trash"></i></button>
                   </div>
                 </div>
-                <p class="font-medium text-lg tracking-widest opacity-90 mb-1">•••• •••• •••• {{ c.finalCartao || '1234' }}</p>
-                <div class="flex justify-between items-end"><p class="font-semibold text-xl">{{ c.nome }}</p></div>
+                <p class="font-medium text-lg tracking-widest opacity-90 mb-1">•••• •••• •••• {{ c.cardLastDigits || '1234' }}</p>
+                <div class="flex justify-between items-end"><p class="font-semibold text-xl">{{ c.name }}</p></div>
                 <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-white rounded-full opacity-10"></div>
               </div>
               <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
-                  <div><p class="text-sm text-slate-500 font-medium mb-1">Valor da Fatura</p><p class="text-3xl font-bold text-slate-800">{{ c.valorFaturaFormatado }}</p></div>
+                  <div><p class="text-sm text-slate-500 font-medium mb-1">Bill Amount</p><p class="text-3xl font-bold text-slate-800">{{ c.formattedBillAmount }}</p></div>
                   <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border" 
-                        [class.bg-blue-100]="c.fatura.status === 'aberta'" [class.text-blue-700]="c.fatura.status === 'aberta'" [class.border-blue-200]="c.fatura.status === 'aberta'"
-                        [class.bg-amber-100]="c.fatura.status === 'fechada'" [class.text-amber-700]="c.fatura.status === 'fechada'" [class.border-amber-200]="c.fatura.status === 'fechada'"
-                        [class.bg-green-100]="c.fatura.status === 'paga'" [class.text-green-700]="c.fatura.status === 'paga'" [class.border-green-200]="c.fatura.status === 'paga'"
-                        [class.bg-slate-100]="c.fatura.status === 'zerada'" [class.text-slate-600]="c.fatura.status === 'zerada'" [class.border-slate-200]="c.fatura.status === 'zerada'">
-                    {{ c.fatura.status }}
+                        [class.bg-blue-100]="c.bill.status === 'open'" [class.text-blue-700]="c.bill.status === 'open'" [class.border-blue-200]="c.bill.status === 'open'"
+                        [class.bg-amber-100]="c.bill.status === 'closed'" [class.text-amber-700]="c.bill.status === 'closed'" [class.border-amber-200]="c.bill.status === 'closed'"
+                        [class.bg-green-100]="c.bill.status === 'paid'" [class.text-green-700]="c.bill.status === 'paid'" [class.border-green-200]="c.bill.status === 'paid'"
+                        [class.bg-slate-100]="c.bill.status === 'zeroed'" [class.text-slate-600]="c.bill.status === 'zeroed'" [class.border-slate-200]="c.bill.status === 'zeroed'">
+                    {{ c.bill.status }}
                   </span>
                 </div>
                 <div class="flex items-center justify-between text-sm text-slate-600 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div class="flex flex-col gap-1"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Período</span><span class="font-medium">{{ c.dataAberturaFormatada }} a {{ c.dataFechamentoFormatada }}</span></div>
+                  <div class="flex flex-col gap-1"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Period</span><span class="font-medium">{{ c.formattedOpeningDate }} to {{ c.formattedClosingDate }}</span></div>
                   <div class="h-8 w-px bg-slate-200"></div>
-                  <div class="flex flex-col gap-1 items-end"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Vencimento</span><span class="font-medium text-slate-800">{{ c.dataVencimentoFormatada }}</span></div>
+                  <div class="flex flex-col gap-1 items-end"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Due Date</span><span class="font-medium text-slate-800">{{ c.formattedDueDate }}</span></div>
                 </div>
-                @if (c.fatura.status !== 'paga' && c.fatura.valorFatura > 0) {
-                  <button (click)="abrirModalPagarFatura(c, c.fatura)" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-md">Pagar Fatura</button>
+                @if (c.bill.status !== 'paid' && c.bill.billAmount > 0) {
+                  <button (click)="openPayBillModal(c, c.bill)" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-md">Pay Bill</button>
                 }
-                @if (c.fatura.status === 'paga') {
-                  <div class="w-full py-3 bg-green-50 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-100"><i class="ph ph-check-circle text-xl"></i> Fatura Paga ({{ c.valorPagoFormatado }})</div>
+                @if (c.bill.status === 'paid') {
+                  <div class="w-full py-3 bg-green-50 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-100"><i class="ph ph-check-circle text-xl"></i> Bill Paid ({{ c.formattedPaidAmount }})</div>
                 }
               </div>
             </div>
@@ -202,38 +202,38 @@
       </div>
     }
 
-    <!-- CONTAS ABA -->
-    @if (abaAtiva() === 'contas') {
+    <!-- ACCOUNTS TAB -->
+    @if (activeTab() === 'accounts') {
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-lg font-bold text-slate-800">Contas Correntes</h2>
-          <button (click)="abrirFormConta(false)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ Nova Conta</button>
+          <h2 class="text-lg font-bold text-slate-800">Checking Accounts</h2>
+          <button (click)="openAccountForm(false)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ New Account</button>
         </div>
 
-        <!-- Form Novo/Editar Conta -->
-        @if (formContaAberto() && formConta()?.tipo === 'debito') {
-          <form (submit)="$event.preventDefault(); salvarConta()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
+        <!-- New/Edit Account Form -->
+        @if (accountFormOpen() && accountForm()?.type === 'debit') {
+          <form (submit)="$event.preventDefault(); saveAccount()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nome da Conta</label><input type="text" required [value]="formConta()?.nome" (input)="updateFormConta('nome', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Account Name</label><input type="text" required [value]="accountForm()?.name" (input)="updateAccountForm('name', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
               <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Saldo Inicial</label>
-                <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span><input type="number" step="0.01" [value]="formConta()?.saldoInicial || 0" (input)="updateFormConta('saldoInicial', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100" /></div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Initial Balance</label>
+                <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span><input type="number" step="0.01" [value]="accountForm()?.initialBalance || 0" (input)="updateAccountForm('initialBalance', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100" /></div>
               </div>
             </div>
-            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="fecharFormConta()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Salvar</button></div>
+            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="closeAccountForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save</button></div>
           </form>
         }
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          @for (c of contasDebito(); track c.id) {
+          @for (acc of debitAccounts(); track acc.id) {
             <div class="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50 group">
               <div class="flex items-center gap-4">
                 <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><i class="ph ph-bank text-lg"></i></div>
-                <p class="font-semibold text-slate-800">{{ c.nome }}</p>
+                <p class="font-semibold text-slate-800">{{ acc.name }}</p>
               </div>
               <div class="flex gap-2 md:opacity-0 group-hover:opacity-100 transition">
-                <button (click)="abrirFormConta(false, c)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
-                <button (click)="deletarConta(c.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
+                <button (click)="openAccountForm(false, acc)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
+                <button (click)="deleteAccount(acc.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
               </div>
             </div>
           }
@@ -241,43 +241,43 @@
       </div>
     }
 
-    <!-- CATEGORIAS ABA -->
-    @if (abaAtiva() === 'categorias') {
+    <!-- CATEGORIES TAB -->
+    @if (activeTab() === 'categories') {
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-lg font-bold text-slate-800">Gerenciar Categorias</h2>
-          <button (click)="abrirFormCategoria()" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ Nova Categoria</button>
+          <h2 class="text-lg font-bold text-slate-800">Manage Categories</h2>
+          <button (click)="openCategoryForm()" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ New Category</button>
         </div>
 
-        @if (formCategoriaAberto()) {
-          <form (submit)="$event.preventDefault(); salvarCategoria()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
+        @if (categoryFormOpen()) {
+          <form (submit)="$event.preventDefault(); saveCategory()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Nome da Categoria</label><input type="text" required [value]="formCategoria()?.nome || ''" (input)="updateFormCategoria('nome', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Tipo</label><select [value]="formCategoria()?.tipo || 'despesa'" (change)="updateFormCategoria('tipo', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Category Name</label><input type="text" required [value]="categoryForm()?.name || ''" (input)="updateCategoryForm('name', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Type</label><select [value]="categoryForm()?.type || 'expense'" (change)="updateCategoryForm('type', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none"><option value="expense">Expense</option><option value="income">Income</option></select></div>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-2">Cor</label>
+              <label class="block text-xs font-semibold text-slate-500 mb-2">Color</label>
               <div class="flex gap-2 flex-wrap">
-                @for (c of objCoresDisp; track c) { <button type="button" (click)="updateFormCategoria('cor', c)" class="w-8 h-8 rounded-full {{c}}" [class.ring-2]="formCategoria()?.cor === c" [class.ring-offset-2]="formCategoria()?.cor === c" [class.ring-slate-400]="formCategoria()?.cor === c"></button> }
+                @for (c of availableColors; track c) { <button type="button" (click)="updateCategoryForm('color', c)" class="w-8 h-8 rounded-full {{c}}" [class.ring-2]="categoryForm()?.color === c" [class.ring-offset-2]="categoryForm()?.color === c" [class.ring-slate-400]="categoryForm()?.color === c"></button> }
               </div>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-2">Ícone</label>
+              <label class="block text-xs font-semibold text-slate-500 mb-2">Icon</label>
               <div class="flex gap-2 flex-wrap">
-                @for (chave of chavesIcones; track chave) { <button type="button" (click)="updateFormCategoria('iconName', chave)" class="p-2 rounded-lg border text-xl" [class]="formCategoria()?.iconName === chave ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'"><i [class]="mapIcones[chave]"></i></button> }
+                @for (key of iconKeys; track key) { <button type="button" (click)="updateCategoryForm('iconName', key)" class="p-2 rounded-lg border text-xl" [class]="categoryForm()?.iconName === key ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'"><i [class]="iconMap[key]"></i></button> }
               </div>
             </div>
-            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="fecharFormCategoria()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancelar</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Salvar</button></div>
+            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="closeCategoryForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save</button></div>
           </form>
         }
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          @for (c of categorias(); track c.id) {
+          @for (c of categories(); track c.id) {
             <div class="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 group">
-              <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center {{c.cor}}"><i [class]="mapIcones[c.iconName] || 'ph ph-question'"></i></div><div><p class="font-semibold text-slate-800">{{c.nome}}</p><p class="text-xs text-slate-400 capitalize">{{c.tipo}}</p></div></div>
+              <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center {{c.color}}"><i [class]="iconMap[c.iconName] || 'ph ph-question'"></i></div><div><p class="font-semibold text-slate-800">{{c.name}}</p><p class="text-xs text-slate-400 capitalize">{{c.type}}</p></div></div>
               <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                <button (click)="abrirFormCategoria(c)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
-                <button (click)="deletarCategoria(c.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
+                <button (click)="openCategoryForm(c)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
+                <button (click)="deleteCategory(c.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
               </div>
             </div>
           }
@@ -287,58 +287,58 @@
 
   </main>
 
-  <!-- MODAL TRANSAÇÃO (NOVA / EDITAR) -->
-  @if (modalTransacaoAberto()) {
+  <!-- TRANSACTION MODAL (NEW / EDIT) -->
+  @if (transactionModalOpen()) {
     <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-end md:items-center p-4">
       <div class="bg-white w-full max-w-lg rounded-t-3xl md:rounded-2xl p-6 md:p-8 shadow-2xl animate-in zoom-in-95">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-xl font-bold text-slate-800">{{ formT().id ? 'Editar Transação' : 'Nova Transação' }}</h2>
-          <button (click)="fecharModalTransacao()" class="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
+          <h2 class="text-xl font-bold text-slate-800">{{ transactionForm().id ? 'Edit Transaction' : 'New Transaction' }}</h2>
+          <button (click)="closeTransactionModal()" class="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
         </div>
         
-        @if (!formT().id) {
+        @if (!transactionForm().id) {
           <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
-            <button (click)="setTipo('despesa')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="formT().tipo === 'despesa' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500'">Despesa</button>
-            <button (click)="setTipo('receita')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="formT().tipo === 'receita' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500'">Receita</button>
+            <button (click)="setType('expense')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="transactionForm().type === 'expense' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500'">Expense</button>
+            <button (click)="setType('income')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="transactionForm().type === 'income' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500'">Income</button>
           </div>
         }
 
-        <form (submit)="$event.preventDefault(); salvarTransacao()" class="space-y-5">
+        <form (submit)="$event.preventDefault(); saveTransaction()" class="space-y-5">
           <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Valor</label>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Value</label>
             <div class="relative"><span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">R$</span>
-              <input type="number" step="0.01" required [value]="formT().valor || ''" (input)="updateForm('valor', $any($event.target).value)"
+              <input type="number" step="0.01" required [value]="transactionForm().amount || ''" (input)="updateForm('amount', $any($event.target).value)"
                      class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-2xl font-bold focus:outline-none focus:ring-2"
-                     [class]="formT().tipo === 'despesa' ? 'text-red-600 focus:ring-red-200' : 'text-green-600 focus:ring-green-200'" />
+                     [class]="transactionForm().type === 'expense' ? 'text-red-600 focus:ring-red-200' : 'text-green-600 focus:ring-green-200'" />
             </div>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Descrição</label>
-            <input type="text" required [value]="formT().descricao" (input)="updateForm('descricao', $any($event.target).value)"
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Description</label>
+            <input type="text" required [value]="transactionForm().description" (input)="updateForm('description', $any($event.target).value)"
                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Categoria</label>
-              <select required [value]="formT().categoria" (change)="updateForm('categoria', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                <option value="" disabled>Selecione...</option>
-                @for (c of categorias(); track c.id) { @if (c.tipo === formT().tipo) { <option [value]="c.id">{{c.nome}}</option> } }
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Category</label>
+              <select required [value]="transactionForm().category" (change)="updateForm('category', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <option value="" disabled>Select...</option>
+                @for (c of categories(); track c.id) { @if (c.type === transactionForm().type) { <option [value]="c.id">{{c.name}}</option> } }
               </select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Conta/Cartão</label>
-              <select required [value]="formT().conta" (change)="updateForm('conta', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                <option value="" disabled>Selecione...</option>
-                @for (c of contas(); track c.id) { <option [value]="c.id">{{c.nome}}</option> }
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Account/Card</label>
+              <select required [value]="transactionForm().account" (change)="updateForm('account', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <option value="" disabled>Select...</option>
+                @for (c of accounts(); track c.id) { <option [value]="c.id">{{c.name}}</option> }
               </select>
             </div>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Data</label>
-            <input type="date" required [value]="formT().data" (input)="updateForm('data', $any($event.target).value)"
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date</label>
+            <input type="date" required [value]="transactionForm().date" (input)="updateForm('date', $any($event.target).value)"
                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100" />
           </div>
-          <button type="submit" class="w-full py-4 rounded-xl font-bold text-white shadow-md transition-all active:scale-95" [class]="formT().tipo === 'despesa' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'">
+          <button type="submit" class="w-full py-4 rounded-xl font-bold text-white shadow-md transition-all active:scale-95" [class]="transactionForm().type === 'expense' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'">
             {{ getBtnLabel() }}
           </button>
         </form>
@@ -346,37 +346,37 @@
     </div>
   }
 
-  <!-- MODAL PAGAR FATURA -->
-  @if (modalPagarAberto()) {
+  <!-- PAY BILL MODAL -->
+  @if (paymentModalOpen()) {
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4">
       <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-xl font-bold text-slate-800">Pagar Fatura</h2>
-          <button (click)="fecharModalPagarFatura()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
+          <h2 class="text-xl font-bold text-slate-800">Pay Bill</h2>
+          <button (click)="closePayBillModal()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
         </div>
         
         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex justify-between items-center">
-          <div><p class="text-xs text-slate-500 font-bold uppercase">Cartão</p><p class="font-semibold text-slate-800">{{ faturaData()?.cartao?.nome }}</p></div>
-          <div class="text-right"><p class="text-xs text-slate-500 font-bold uppercase">Total a Pagar</p><p class="font-bold text-lg text-slate-800">{{ fm(faturaData()?.fatura?.valorFatura) }}</p></div>
+          <div><p class="text-xs text-slate-500 font-bold uppercase">Card</p><p class="font-semibold text-slate-800">{{ billData()?.card?.name }}</p></div>
+          <div class="text-right"><p class="text-xs text-slate-500 font-bold uppercase">Total to Pay</p><p class="font-bold text-lg text-slate-800">{{ fm(billData()?.bill?.billAmount) }}</p></div>
         </div>
 
-        @if (faturaErro()) {
+        @if (billError()) {
           <div class="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl flex items-start gap-3">
-            <i class="ph ph-warning-circle text-xl shrink-0 mt-0.5"></i><p>{{ faturaErro() }}</p>
+            <i class="ph ph-warning-circle text-xl shrink-0 mt-0.5"></i><p>{{ billError() }}</p>
           </div>
         }
 
-        <form (submit)="$event.preventDefault(); confirmarPagamentoFatura()" class="space-y-4">
+        <form (submit)="$event.preventDefault(); confirmBillPayment()" class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">De qual conta o dinheiro saiu?</label>
-            <select required [value]="faturaContaOrigem()" (change)="faturaContaOrigem.set($any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-indigo-100 outline-none">
-              <option value="" disabled>Selecione uma conta...</option>
-              @for (c of contasDebito(); track c.id) {
-                <option [value]="c.id">{{c.nome}}</option>
+            <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">From which account did the money come?</label>
+            <select required [value]="billSourceAccount()" (change)="billSourceAccount.set($any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-indigo-100 outline-none">
+              <option value="" disabled>Select an account...</option>
+              @for (c of debitAccounts(); track c.id) {
+                <option [value]="c.id">{{c.name}}</option>
               }
             </select>
           </div>
-          <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95">Confirmar Pagamento</button>
+          <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95">Confirm Payment</button>
         </form>
       </div>
     </div>
