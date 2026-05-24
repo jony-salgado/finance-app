@@ -1,10 +1,15 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Transaction, Account, Category } from '../models';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FinanceService {
+  private http = inject(HttpClient);
+  private apiUrl = '/api';
+
   // Configurations
   iconMap: Record<string, string> = { 
     Utensils: 'ph-fork-knife', Car: 'ph-car', ShoppingCart: 'ph-shopping-cart', 
@@ -22,33 +27,38 @@ export class FinanceService {
   };
 
   // State
-  globalTransactions = signal<Transaction[]>(this.getInitialTransactions());
-  categories = signal<Category[]>([
-    { id: 'food', name: 'Food', iconName: 'Utensils', color: 'bg-orange-100 text-orange-600', type: 'expense' },
-    { id: 'transport', name: 'Transport', iconName: 'Car', color: 'bg-blue-100 text-blue-600', type: 'expense' },
-    { id: 'salary', name: 'Salary', iconName: 'Landmark', color: 'bg-green-100 text-green-600', type: 'income' },
-    { id: 'investments', name: 'Investments', iconName: 'TrendingUp', color: 'bg-teal-100 text-teal-600', type: 'income' }
-  ]);
-  accounts = signal<Account[]>([
-    { id: 'checking_account', name: 'Checking Account', type: 'debit', initialBalance: 0 },
-    { id: 'nubank', name: 'Nubank Card', type: 'credit', closingDay: 5, dueDay: 12, cardLastDigits: '1234', cardColor: 'bg-purple-600' }
-  ]);
+  globalTransactions = signal<Transaction[]>([]);
+  accounts = signal<Account[]>([]);
+  categories = signal<Category[]>([]);
+  error = signal<string | null>(null);
 
-  constructor() {}
+  constructor() {
+    this.loadData();
+  }
 
-  private getInitialTransactions(): Transaction[] {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const lastMonth = String(d.getMonth() === 0 ? 12 : d.getMonth()).padStart(2, '0');
-    const lastMonthYear = d.getMonth() === 0 ? year - 1 : year;
+  async loadData() {
+    try {
+      this.error.set(null);
+      console.log('FinanceService: Loading data from API...');
+      const accounts = await firstValueFrom(this.http.get<Account[]>(`${this.apiUrl}/accounts/`));
+      console.log('FinanceService: Accounts loaded', accounts);
+      this.accounts.set(accounts);
 
-    return [
-      { id: '1', description: 'Salary', amount: 15400.00, type: 'income', category: 'salary', account: 'checking_account', date: `${year}-${month}-05` },
-      { id: '2', description: 'Supermarket', amount: 850.50, type: 'expense', category: 'food', account: 'nubank', date: `${year}-${month}-02` },
-      { id: '3', description: 'Uber', amount: 45.00, type: 'expense', category: 'transport', account: 'nubank', date: `${year}-${month}-10` },
-      { id: '4', description: 'Restaurant', amount: 320.00, type: 'expense', category: 'food', account: 'nubank', date: `${lastMonthYear}-${lastMonth}-25` },
-    ];
+      const categories = await firstValueFrom(this.http.get<Category[]>(`${this.apiUrl}/categories/`));
+      console.log('FinanceService: Categories loaded', categories);
+      this.categories.set(categories);
+
+      const transactions = await firstValueFrom(this.http.get<Transaction[]>(`${this.apiUrl}/transactions/`));
+      console.log('FinanceService: Transactions loaded', transactions);
+      this.globalTransactions.set(transactions);
+    } catch (error: any) {
+      console.error('FinanceService: Error loading data', error);
+      let msg = 'Failed to load data.';
+      if (error.status === 0) msg += ' The backend is not reachable. Check if it is running.';
+      else if (error.status === 500) msg += ' Backend Internal Server Error: ' + (error.error?.detail || 'Unknown error');
+      else msg += ' ' + (error.error?.detail || error.message);
+      this.error.set(msg);
+    }
   }
 
   // Utils
@@ -59,39 +69,127 @@ export class FinanceService {
   }
 
   // Actions
-  addTransaction(t: Transaction) {
-    this.globalTransactions.update(ts => [...ts, t]);
+  async addTransaction(t: Transaction) {
+    try {
+      this.error.set(null);
+      // Remove local ID if present, let backend generate it
+      const { id, ...data } = t;
+      const newT = await firstValueFrom(this.http.post<Transaction>(`${this.apiUrl}/transactions/`, data));
+      this.globalTransactions.update(ts => [...ts, newT]);
+      return true;
+    } catch (error: any) {
+      console.error('Error adding transaction', error);
+      this.error.set(error.error?.detail || 'Error saving transaction. Check your database permissions (RLS).');
+      return false;
+    }
   }
 
-  updateTransaction(t: Transaction) {
-    this.globalTransactions.update(ts => ts.map(item => item.id === t.id ? t : item));
+  async updateTransaction(t: Transaction) {
+    try {
+      this.error.set(null);
+      const { id, ...data } = t;
+      const updatedT = await firstValueFrom(this.http.put<Transaction>(`${this.apiUrl}/transactions/${id}`, data));
+      this.globalTransactions.update(ts => ts.map(item => item.id === id ? updatedT : item));
+      return true;
+    } catch (error: any) {
+      console.error('Error updating transaction', error);
+      this.error.set(error.error?.detail || 'Error updating transaction. Check your database permissions (RLS).');
+      return false;
+    }
   }
 
-  deleteTransaction(id: string) {
-    this.globalTransactions.update(ts => ts.filter(t => t.id !== id));
+  async deleteTransaction(id: string) {
+    try {
+      this.error.set(null);
+      await firstValueFrom(this.http.delete(`${this.apiUrl}/transactions/${id}`));
+      this.globalTransactions.update(ts => ts.filter(t => t.id !== id));
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting transaction', error);
+      this.error.set(error.error?.detail || 'Error deleting transaction.');
+      return false;
+    }
   }
 
-  addCategory(c: Category) {
-    this.categories.update(cs => [...cs, c]);
+  async addCategory(c: Category) {
+    try {
+      this.error.set(null);
+      const { id, ...data } = c;
+      const newC = await firstValueFrom(this.http.post<Category>(`${this.apiUrl}/categories/`, data));
+      this.categories.update(cs => [...cs, newC]);
+      return true;
+    } catch (error: any) {
+      console.error('Error adding category', error);
+      this.error.set(error.error?.detail || 'Error saving category. Table might be missing or RLS is blocking.');
+      return false;
+    }
   }
 
-  updateCategory(c: Category) {
-    this.categories.update(cs => cs.map(item => item.id === c.id ? c : item));
+  async updateCategory(c: Category) {
+    try {
+      this.error.set(null);
+      const { id, ...data } = c;
+      const updatedC = await firstValueFrom(this.http.put<Category>(`${this.apiUrl}/categories/${id}`, data));
+      this.categories.update(cs => cs.map(item => item.id === id ? updatedC : item));
+      return true;
+    } catch (error: any) {
+      console.error('Error updating category', error);
+      this.error.set(error.error?.detail || 'Error updating category.');
+      return false;
+    }
   }
 
-  deleteCategory(id: string) {
-    this.categories.update(cs => cs.filter(c => c.id !== id));
+  async deleteCategory(id: string) {
+    try {
+      this.error.set(null);
+      await firstValueFrom(this.http.delete(`${this.apiUrl}/categories/${id}`));
+      this.categories.update(cs => cs.filter(c => c.id !== id));
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting category', error);
+      this.error.set(error.error?.detail || 'Error deleting category.');
+      return false;
+    }
   }
 
-  addAccount(c: Account) {
-    this.accounts.update(cs => [...cs, c]);
+  async addAccount(a: Account) {
+    try {
+      this.error.set(null);
+      const { id, ...data } = a;
+      const newA = await firstValueFrom(this.http.post<Account>(`${this.apiUrl}/accounts/`, data));
+      this.accounts.update(cs => [...cs, newA]);
+      return true;
+    } catch (error: any) {
+      console.error('Error adding account', error);
+      this.error.set(error.error?.detail || 'Error saving account. Check your database permissions (RLS).');
+      return false;
+    }
   }
 
-  updateAccount(c: Account) {
-    this.accounts.update(cs => cs.map(item => item.id === c.id ? c : item));
+  async updateAccount(a: Account) {
+    try {
+      this.error.set(null);
+      const { id, ...data } = a;
+      const updatedA = await firstValueFrom(this.http.put<Account>(`${this.apiUrl}/accounts/${id}`, data));
+      this.accounts.update(as => as.map(item => item.id === id ? updatedA : item));
+      return true;
+    } catch (error: any) {
+      console.error('Error updating account', error);
+      this.error.set(error.error?.detail || 'Error updating account.');
+      return false;
+    }
   }
 
-  deleteAccount(id: string) {
-    this.accounts.update(cs => cs.filter(c => c.id !== id));
+  async deleteAccount(id: string) {
+    try {
+      this.error.set(null);
+      await firstValueFrom(this.http.delete(`${this.apiUrl}/accounts/${id}`));
+      this.accounts.update(as => as.filter(a => a.id !== id));
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting account', error);
+      this.error.set(error.error?.detail || 'Error deleting account.');
+      return false;
+    }
   }
 }

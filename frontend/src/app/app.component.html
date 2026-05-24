@@ -26,6 +26,19 @@
 
   <!-- MAIN CONTENT -->
   <main class="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full h-screen overflow-y-auto">
+    
+    <!-- ERROR ALERT -->
+    @if (error()) {
+      <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl flex items-start gap-3 shadow-sm animate-in slide-in-from-top-4">
+        <i class="ph ph-warning-circle text-2xl shrink-0 mt-0.5"></i>
+        <div>
+          <p class="font-bold">Database Error</p>
+          <p class="text-sm opacity-90">{{ error() }}</p>
+          <p class="text-xs mt-2 font-medium underline cursor-pointer" (click)="error.set(null)">Dismiss</p>
+        </div>
+      </div>
+    }
+
     <header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8 pt-2 md:pt-0">
       <div>
         <h1 class="text-2xl font-bold text-slate-900">{{ headerTitle() }}</h1>
@@ -137,7 +150,7 @@
         @if (displayCards().length === 0) { <p class="text-center text-slate-500 py-10">No cards registered.</p> }
         
         <!-- New/Edit Card Form -->
-        @if (accountFormOpen() && accountForm()?.type === 'credit') {
+        @if (accountFormOpen() && accountForm()?.type === 'credit_card') {
           <form (submit)="$event.preventDefault(); saveAccount()" class="bg-white p-6 rounded-2xl border border-slate-200 mb-6 space-y-4 shadow-sm animate-in slide-in-from-top-4">
             <h3 class="font-bold text-slate-700 mb-4">{{ accountForm()?.id ? 'Edit Card' : 'New Card' }}</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,7 +163,11 @@
               <label class="block text-xs font-semibold text-slate-500 mb-2">Card Color</label>
               <div class="flex gap-2 flex-wrap">
                 @for (color of cardColors; track color) {
-                  <button type="button" (click)="updateAccountForm('cardColor', color)" class="w-8 h-8 rounded-full shadow-sm {{color}}" [class.ring-2]="accountForm()?.cardColor === color" [class.ring-offset-2]="accountForm()?.cardColor === color" [class.ring-indigo-400]="accountForm()?.cardColor === color"></button>
+                  <button type="button" (click)="updateAccountForm('cardColor', color)" 
+                          class="w-8 h-8 rounded-full shadow-sm"
+                          [class]="color.startsWith('#') ? '' : color"
+                          [style.backgroundColor]="color.startsWith('#') ? color : ''"
+                          [class.ring-2]="accountForm()?.cardColor === color" [class.ring-offset-2]="accountForm()?.cardColor === color" [class.ring-indigo-400]="accountForm()?.cardColor === color"></button>
                 }
               </div>
             </div>
@@ -161,7 +178,9 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           @for (c of displayCards(); track c.id) {
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden group">
-              <div class="{{ c.cardColor || 'bg-slate-800' }} p-6 text-white relative">
+              <div [class]="c.cardColor?.startsWith('#') ? '' : (c.cardColor || 'bg-slate-800')"
+                   [style.backgroundColor]="c.cardColor?.startsWith('#') ? c.cardColor : ''"
+                   class="p-6 text-white relative">
                 <div class="flex justify-between items-start mb-8">
                   <div class="w-10 h-8 bg-white/20 rounded flex items-center justify-center backdrop-blur-sm"><div class="w-6 h-4 bg-amber-200/50 rounded-sm"></div></div>
                   <div class="flex gap-2 relative z-10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -211,7 +230,7 @@
         </div>
 
         <!-- New/Edit Account Form -->
-        @if (accountFormOpen() && accountForm()?.type === 'debit') {
+        @if (accountFormOpen() && (accountForm()?.type === 'checking' || accountForm()?.type === 'investment')) {
           <form (submit)="$event.preventDefault(); saveAccount()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><label class="block text-xs font-semibold text-slate-500 mb-1">Account Name</label><input type="text" required [value]="accountForm()?.name" (input)="updateAccountForm('name', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>

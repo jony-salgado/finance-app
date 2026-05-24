@@ -18,7 +18,7 @@ export class AppComponent implements OnInit {
   // Constants & Configs
   iconMap = this.financeService.iconMap;
   availableColors = ['bg-red-100 text-red-600', 'bg-orange-100 text-orange-600', 'bg-yellow-100 text-yellow-600', 'bg-green-100 text-green-600', 'bg-teal-100 text-teal-600', 'bg-blue-100 text-blue-600', 'bg-indigo-100 text-indigo-600', 'bg-purple-100 text-purple-600', 'bg-pink-100 text-pink-600', 'bg-gray-100 text-gray-600'];
-  cardColors = ['bg-slate-800', 'bg-blue-600', 'bg-purple-600', 'bg-orange-500', 'bg-emerald-600', 'bg-red-600', 'bg-pink-600', 'bg-cyan-600'];
+  cardColors = ['bg-slate-800', 'bg-blue-600', 'bg-purple-600', 'bg-orange-500', 'bg-emerald-600', 'bg-red-600', 'bg-pink-600', 'bg-cyan-600', '#8A05BE', '#1A1A1A'];
   iconKeys = Object.keys(this.iconMap);
 
   // View State
@@ -29,6 +29,7 @@ export class AppComponent implements OnInit {
   globalTransactions = this.financeService.globalTransactions;
   categories = this.financeService.categories;
   accounts = this.financeService.accounts;
+  error = this.financeService.error;
 
   // Modals & Forms State
   transactionModalOpen = signal(false);
@@ -65,8 +66,8 @@ export class AppComponent implements OnInit {
 
   // --- COMPUTEDS ---
 
-  debitAccounts = computed(() => this.accounts().filter(c => c.type === 'debit'));
-  creditCards = computed(() => this.accounts().filter(c => c.type === 'credit'));
+  debitAccounts = computed(() => this.accounts().filter(c => c.type === 'checking' || c.type === 'investment'));
+  creditCards = computed(() => this.accounts().filter(c => c.type === 'credit_card'));
   
   displayCards = computed(() => {
     return this.creditCards().map(card => {
@@ -93,8 +94,11 @@ export class AppComponent implements OnInit {
   displayTransactions = computed(() => {
     return this.monthTransactions().map(t => {
       const isBill = t.type === 'credit_card_payment';
-      const cat = this.getCategory(t.category, isBill);
-      const con = this.getAccount(isBill ? t.sourceAccount! : t.account!);
+      const categoryId = t.category || (t as any).category_id;
+      const accountId = isBill ? (t.sourceAccount || (t as any).source_account_id) : (t.account || (t as any).account_id);
+      
+      const cat = this.getCategory(categoryId, isBill);
+      const con = this.getAccount(accountId);
       return {
         ...t,
         isBill,
@@ -118,17 +122,18 @@ export class AppComponent implements OnInit {
 
     let accountBalance = 0;
     const balancesByAccountMap: Record<string, number> = {};
-    cs.filter(c => c.type === 'debit').forEach(c => {
+    cs.filter(c => c.type === 'checking' || c.type === 'investment').forEach(c => {
         balancesByAccountMap[c.id] = c.initialBalance || 0;
         accountBalance += c.initialBalance || 0;
     });
 
     tG.forEach(t => {
-      const account = cs.find(c => c.id === (t.account || t.sourceAccount));
-      if (account && account.type === 'debit') {
-        if (t.type === 'income') { accountBalance += t.amount; if(balancesByAccountMap[t.account!] !== undefined) balancesByAccountMap[t.account!] += t.amount; }
-        if (t.type === 'expense') { accountBalance -= t.amount; if(balancesByAccountMap[t.account!] !== undefined) balancesByAccountMap[t.account!] -= t.amount; }
-        if (t.type === 'credit_card_payment') { accountBalance -= t.amount; if(balancesByAccountMap[t.sourceAccount!] !== undefined) balancesByAccountMap[t.sourceAccount!] -= t.amount; }
+      const accId = t.account || (t as any).account_id || t.sourceAccount || (t as any).source_account_id;
+      const account = cs.find(c => c.id === accId);
+      if (account && (account.type === 'checking' || account.type === 'investment')) {
+        if (t.type === 'income') { accountBalance += t.amount; if(balancesByAccountMap[account.id] !== undefined) balancesByAccountMap[account.id] += t.amount; }
+        if (t.type === 'expense') { accountBalance -= t.amount; if(balancesByAccountMap[account.id] !== undefined) balancesByAccountMap[account.id] -= t.amount; }
+        if (t.type === 'credit_card_payment') { accountBalance -= t.amount; if(balancesByAccountMap[account.id] !== undefined) balancesByAccountMap[account.id] -= t.amount; }
       }
     });
 
@@ -137,11 +142,14 @@ export class AppComponent implements OnInit {
 
     tM.forEach(t => {
       if (t.type === 'credit_card_payment') return;
+      const catId = t.category || (t as any).category_id;
+      const accId = t.account || (t as any).account_id;
+
       if (t.type === 'income') monthIncomes += t.amount;
       else if (t.type === 'expense') {
         monthExpenses += t.amount;
-        catMap[t.category] = (catMap[t.category] || 0) + t.amount;
-        accountMap[t.account!] = (accountMap[t.account!] || 0) + t.amount;
+        if (catId) catMap[catId] = (catMap[catId] || 0) + t.amount;
+        if (accId) accountMap[accId] = (accountMap[accId] || 0) + t.amount;
       }
     });
 
@@ -158,7 +166,7 @@ export class AppComponent implements OnInit {
       accountBalance, monthIncomes, monthExpenses, 
       expensesByCategory: formatChart(catMap, cats), 
       expensesByAccount: formatChart(accountMap, accountsWithColor),
-      displayAccountBalances: cs.filter(c => c.type === 'debit').map(c => ({ ...c, balance: balancesByAccountMap[c.id] || 0, formattedBalance: this.fm(balancesByAccountMap[c.id] || 0) }))
+      displayAccountBalances: cs.filter(c => c.type === 'checking' || c.type === 'investment').map(c => ({ ...c, balance: balancesByAccountMap[c.id] || 0, formattedBalance: this.fm(balancesByAccountMap[c.id] || 0) }))
     };
   });
 
@@ -229,7 +237,6 @@ export class AppComponent implements OnInit {
     const form = this.transactionForm();
     form.amount = parseFloat(form.amount.toString().replace(',', '.'));
     if (!form.id) {
-      form.id = Math.random().toString(36).substring(2, 9);
       this.financeService.addTransaction(form);
     } else {
       this.financeService.updateTransaction(form);
@@ -248,7 +255,7 @@ export class AppComponent implements OnInit {
   saveCategory() {
     const form = this.categoryForm();
     if(form.id) this.financeService.updateCategory(form);
-    else this.financeService.addCategory({ ...form, id: Math.random().toString(36).substring(2, 9) });
+    else this.financeService.addCategory(form);
     this.closeCategoryForm();
   }
   deleteCategory(id: string) { this.financeService.deleteCategory(id); }
@@ -256,8 +263,8 @@ export class AppComponent implements OnInit {
   openAccountForm(isCard: boolean, account: any = null) {
     this.accountForm.set(account ? {...account} : (
       isCard 
-        ? { name: '', type: 'credit', closingDay: 1, dueDay: 10, cardLastDigits: '1234', cardColor: this.cardColors[0] }
-        : { name: '', type: 'debit', initialBalance: 0 }
+        ? { name: '', type: 'credit_card', closingDay: 1, dueDay: 10, cardLastDigits: '1234', cardColor: this.cardColors[0] }
+        : { name: '', type: 'checking', initialBalance: 0 }
     ));
     this.accountFormOpen.set(true);
   }
@@ -265,9 +272,9 @@ export class AppComponent implements OnInit {
   updateAccountForm(field: string, value: any) { this.accountForm.set({ ...this.accountForm(), [field]: value }); }
   saveAccount() {
     const form = this.accountForm();
-    if(form.type === 'debit') form.initialBalance = parseFloat(form.initialBalance.toString().replace(',', '.')) || 0;
+    if(form.type === 'checking' || form.type === 'investment') form.initialBalance = parseFloat(form.initialBalance.toString().replace(',', '.')) || 0;
     if(form.id) this.financeService.updateAccount(form);
-    else this.financeService.addAccount({ ...form, id: Math.random().toString(36).substring(2, 9) });
+    else this.financeService.addAccount(form);
     this.closeAccountForm();
   }
   deleteAccount(id: string) { this.financeService.deleteAccount(id); }
@@ -333,7 +340,6 @@ export class AppComponent implements OnInit {
     }
 
     const billTransaction = {
-      id: Math.random().toString(36).substring(2, 9),
       type: 'credit_card_payment',
       description: `Bill Payment ${card.name}`,
       amount: bill.billAmount,
@@ -344,7 +350,7 @@ export class AppComponent implements OnInit {
       referenceMonth: this.currentMonthYear()
     };
     
-    this.financeService.addTransaction(billTransaction as Transaction);
+    this.financeService.addTransaction(billTransaction as any);
     this.closePayBillModal();
   }
 
