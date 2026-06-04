@@ -9,8 +9,8 @@ declare var PluggyConnect: any; // Assuming Pluggy script is loaded in index.htm
   standalone: true,
   imports: [CommonModule],
   template: `
-    <button 
-      (click)="connectAccount()" 
+    <button
+      (click)="connectAccount()"
       [disabled]="loading()"
       class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
     >
@@ -19,7 +19,7 @@ declare var PluggyConnect: any; // Assuming Pluggy script is loaded in index.htm
       <span>{{ loading() ? 'Iniciando...' : 'Conectar Banco (Open Finance)' }}</span>
     </button>
   `,
-  styles: []
+  styles: [],
 })
 export class OpenFinanceButtonComponent {
   private financeService = inject(FinanceService);
@@ -30,7 +30,7 @@ export class OpenFinanceButtonComponent {
     try {
       // 1. Get the Link Token from our backend
       const response = await this.financeService.getOpenFinanceLinkToken();
-      
+
       // 2. Initialize the Widget
       // Checking both global and window object for better compatibility
       const Pluggy = (window as any).PluggyConnect || (globalThis as any).PluggyConnect;
@@ -45,13 +45,19 @@ export class OpenFinanceButtonComponent {
               try {
                 const res = await this.financeService.syncPluggyAccount(itemData.item.id);
                 if (res && res.is_new) {
-                  alert(`Conexão realizada com sucesso!\n\nForam adicionadas ${res.transactions_added} transações dos últimos 30 dias. Por favor, revise e classifique as novas transações na página de Transações.`);
+                  alert(
+                    `Conexão realizada com sucesso!\n\nForam adicionadas ${res.transactions_added} transações dos últimos 30 dias. Por favor, revise e classifique as novas transações na página de Transações.`,
+                  );
                 } else if (res) {
-                  alert(`Sincronização concluída!\n\nForam adicionadas ${res.transactions_added} novas transações.`);
+                  alert(
+                    `Sincronização concluída!\n\nForam adicionadas ${res.transactions_added} novas transações.`,
+                  );
                 }
               } catch (err) {
                 console.error(err);
-                alert('Erro ao sincronizar transações. Certifique-se de executar a alteração no banco para adicionar a coluna provider_item_id.');
+                alert(
+                  'Erro ao sincronizar transações. Certifique-se de executar a alteração no banco para adicionar a coluna provider_item_id.',
+                );
               }
             }
             this.financeService.loadData();
@@ -62,12 +68,14 @@ export class OpenFinanceButtonComponent {
           },
           onClose: () => {
             this.loading.set(false);
-          }
+          },
         });
         pluggyConnect.init();
       } else {
         console.error('PluggyConnect script not loaded. Check index.html or network logs.');
-        alert('Erro: O widget da Pluggy não foi detectado. Tente recarregar a página (F5). Se o erro persistir, verifique se o script https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js está acessível no seu navegador.');
+        alert(
+          'Erro: O widget da Pluggy não foi detectado. Tente recarregar a página (F5). Se o erro persistir, verifique se o script https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js está acessível no seu navegador.',
+        );
         this.loading.set(false);
       }
     } catch (err) {

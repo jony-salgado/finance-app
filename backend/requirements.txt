@@ -5,3 +5,6 @@ python-multipart
 supabase
 python-dotenv
 pluggy-sdk
+pytest
+pytest-asyncio
+black

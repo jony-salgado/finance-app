@@ -1,4 +1,11 @@
-import { Component, ChangeDetectionStrategy, signal, computed, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  computed,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FinanceService } from './services/finance.service';
 import { CardResumoComponent } from './components/card-resumo/card-resumo.component';
@@ -11,21 +18,47 @@ import { Transaction, Account, Category } from './models';
   standalone: true,
   imports: [CommonModule, CardResumoComponent, CardPizzaComponent, OpenFinanceButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './app.component.html'
+  templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {
   private financeService = inject(FinanceService);
 
   // Constants & Configs
   iconMap = this.financeService.iconMap;
-  availableColors = ['bg-red-100 text-red-600', 'bg-orange-100 text-orange-600', 'bg-yellow-100 text-yellow-600', 'bg-green-100 text-green-600', 'bg-teal-100 text-teal-600', 'bg-blue-100 text-blue-600', 'bg-indigo-100 text-indigo-600', 'bg-purple-100 text-purple-600', 'bg-pink-100 text-pink-600', 'bg-gray-100 text-gray-600'];
-  cardColors = ['bg-slate-800', 'bg-blue-600', 'bg-purple-600', 'bg-orange-500', 'bg-emerald-600', 'bg-red-600', 'bg-pink-600', 'bg-cyan-600', '#8A05BE', '#1A1A1A'];
+  availableColors = [
+    'bg-red-100 text-red-600',
+    'bg-orange-100 text-orange-600',
+    'bg-yellow-100 text-yellow-600',
+    'bg-green-100 text-green-600',
+    'bg-teal-100 text-teal-600',
+    'bg-blue-100 text-blue-600',
+    'bg-indigo-100 text-indigo-600',
+    'bg-purple-100 text-purple-600',
+    'bg-pink-100 text-pink-600',
+    'bg-gray-100 text-gray-600',
+  ];
+  cardColors = [
+    'bg-slate-800',
+    'bg-blue-600',
+    'bg-purple-600',
+    'bg-orange-500',
+    'bg-emerald-600',
+    'bg-red-600',
+    'bg-pink-600',
+    'bg-cyan-600',
+    '#8A05BE',
+    '#1A1A1A',
+  ];
   iconKeys = Object.keys(this.iconMap);
 
   // View State
-  activeTab = signal<'dashboard'|'transactions'|'cards'|'accounts'|'categories'>('dashboard');
-  currentMonthYear = signal(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`);
-  
+  activeTab = signal<'dashboard' | 'transactions' | 'cards' | 'accounts' | 'categories'>(
+    'dashboard',
+  );
+  currentMonthYear = signal(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+  );
+
   // Data Signals (from Service)
   globalTransactions = this.financeService.globalTransactions;
   categories = this.financeService.categories;
@@ -34,11 +67,18 @@ export class AppComponent implements OnInit {
 
   // Modals & Forms State
   transactionModalOpen = signal(false);
-  transactionForm = signal<any>({ description: '', amount: 0, type: 'expense', category: '', account: '', date: '' });
+  transactionForm = signal<any>({
+    description: '',
+    amount: 0,
+    type: 'expense',
+    category: '',
+    account: '',
+    date: '',
+  });
 
   categoryFormOpen = signal(false);
   categoryForm = signal<any>(null);
-  
+
   accountFormOpen = signal(false);
   accountForm = signal<any>(null);
 
@@ -72,11 +112,13 @@ export class AppComponent implements OnInit {
 
   // --- COMPUTEDS ---
 
-  debitAccounts = computed(() => this.accounts().filter(c => c.type === 'checking' || c.type === 'investment'));
-  creditCards = computed(() => this.accounts().filter(c => c.type === 'credit_card'));
-  
+  debitAccounts = computed(() =>
+    this.accounts().filter((c) => c.type === 'checking' || c.type === 'investment'),
+  );
+  creditCards = computed(() => this.accounts().filter((c) => c.type === 'credit_card'));
+
   displayCards = computed(() => {
-    return this.creditCards().map(card => {
+    return this.creditCards().map((card) => {
       const bill = this.getBillSummary(card);
       return {
         ...card,
@@ -85,7 +127,7 @@ export class AppComponent implements OnInit {
         formattedPaidAmount: this.fm(bill.paidAmount),
         formattedOpeningDate: `${bill.openingDate.getDate()}/${bill.openingDate.getMonth() + 1}`,
         formattedClosingDate: `${bill.closingDate.getDate()}/${bill.closingDate.getMonth() + 1}`,
-        formattedDueDate: `${bill.dueDate.getDate()}/${(bill.dueDate.getMonth() + 1).toString().padStart(2, '0')}`
+        formattedDueDate: `${bill.dueDate.getDate()}/${(bill.dueDate.getMonth() + 1).toString().padStart(2, '0')}`,
       };
     });
   });
@@ -93,16 +135,18 @@ export class AppComponent implements OnInit {
   monthTransactions = computed(() => {
     const month = this.currentMonthYear();
     return [...this.globalTransactions()]
-      .filter(t => String(t.date).startsWith(month) || t.referenceMonth === month)
-      .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .filter((t) => String(t.date).startsWith(month) || t.referenceMonth === month)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
 
   displayTransactions = computed(() => {
-    return this.monthTransactions().map(t => {
+    return this.monthTransactions().map((t) => {
       const isBill = t.type === 'credit_card_payment';
       const categoryId = t.category || (t as any).category_id;
-      const accountId = isBill ? (t.sourceAccount || (t as any).source_account_id) : (t.account || (t as any).account_id);
-      
+      const accountId = isBill
+        ? t.sourceAccount || (t as any).source_account_id
+        : t.account || (t as any).account_id;
+
       const cat = this.getCategory(categoryId, isBill);
       const con = this.getAccount(accountId);
       return {
@@ -115,7 +159,7 @@ export class AppComponent implements OnInit {
         catColor: cat.color,
         catIcon: cat.iconClass,
         accountName: isBill ? `From: ${con.name}` : con.name,
-        isExpense: t.type === 'expense' || isBill
+        isExpense: t.type === 'expense' || isBill,
       };
     });
   });
@@ -128,25 +172,40 @@ export class AppComponent implements OnInit {
 
     let accountBalance = 0;
     const balancesByAccountMap: Record<string, number> = {};
-    cs.filter(c => c.type === 'checking' || c.type === 'investment').forEach(c => {
-        balancesByAccountMap[c.id] = c.initialBalance || 0;
-        accountBalance += c.initialBalance || 0;
+    cs.filter((c) => c.type === 'checking' || c.type === 'investment').forEach((c) => {
+      balancesByAccountMap[c.id] = c.initialBalance || 0;
+      accountBalance += c.initialBalance || 0;
     });
 
-    tG.forEach(t => {
-      const accId = t.account || (t as any).account_id || t.sourceAccount || (t as any).source_account_id;
-      const account = cs.find(c => c.id === accId);
+    tG.forEach((t) => {
+      const accId =
+        t.account || (t as any).account_id || t.sourceAccount || (t as any).source_account_id;
+      const account = cs.find((c) => c.id === accId);
       if (account && (account.type === 'checking' || account.type === 'investment')) {
-        if (t.type === 'income') { accountBalance += t.amount; if(balancesByAccountMap[account.id] !== undefined) balancesByAccountMap[account.id] += t.amount; }
-        if (t.type === 'expense') { accountBalance -= t.amount; if(balancesByAccountMap[account.id] !== undefined) balancesByAccountMap[account.id] -= t.amount; }
-        if (t.type === 'credit_card_payment') { accountBalance -= t.amount; if(balancesByAccountMap[account.id] !== undefined) balancesByAccountMap[account.id] -= t.amount; }
+        if (t.type === 'income') {
+          accountBalance += t.amount;
+          if (balancesByAccountMap[account.id] !== undefined)
+            balancesByAccountMap[account.id] += t.amount;
+        }
+        if (t.type === 'expense') {
+          accountBalance -= t.amount;
+          if (balancesByAccountMap[account.id] !== undefined)
+            balancesByAccountMap[account.id] -= t.amount;
+        }
+        if (t.type === 'credit_card_payment') {
+          accountBalance -= t.amount;
+          if (balancesByAccountMap[account.id] !== undefined)
+            balancesByAccountMap[account.id] -= t.amount;
+        }
       }
     });
 
-    let monthIncomes = 0; let monthExpenses = 0;
-    const catMap: Record<string, number> = {}; const accountMap: Record<string, number> = {};
+    let monthIncomes = 0;
+    let monthExpenses = 0;
+    const catMap: Record<string, number> = {};
+    const accountMap: Record<string, number> = {};
 
-    tM.forEach(t => {
+    tM.forEach((t) => {
       if (t.type === 'credit_card_payment') return;
       const catId = t.category || (t as any).category_id;
       const accId = t.account || (t as any).account_id;
@@ -159,48 +218,118 @@ export class AppComponent implements OnInit {
       }
     });
 
-    const formatChart = (map: Record<string, number>, baseList: any[], defaultColor = 'bg-gray-100 text-gray-500') => 
-      Object.keys(map).map(id => {
-        const item = baseList.find(i => i.id === id) || { name: 'Unknown', color: defaultColor };
-        return { id, name: item.name, amount: map[id], percentage: (map[id] / (monthExpenses || 1)) * 100, hexColor: item.cardColor || this.financeService.extractHexColor(item.color) };
-      }).sort((a, b) => b.amount - a.amount);
+    const formatChart = (
+      map: Record<string, number>,
+      baseList: any[],
+      defaultColor = 'bg-gray-100 text-gray-500',
+    ) =>
+      Object.keys(map)
+        .map((id) => {
+          const item = baseList.find((i) => i.id === id) || {
+            name: 'Unknown',
+            color: defaultColor,
+          };
+          return {
+            id,
+            name: item.name,
+            amount: map[id],
+            percentage: (map[id] / (monthExpenses || 1)) * 100,
+            hexColor: item.cardColor || this.financeService.extractHexColor(item.color),
+          };
+        })
+        .sort((a, b) => b.amount - a.amount);
 
     const accountColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
-    const accountsWithColor = cs.map((c, i) => ({ ...c, cardColor: accountColors[i % accountColors.length] }));
+    const accountsWithColor = cs.map((c, i) => ({
+      ...c,
+      cardColor: accountColors[i % accountColors.length],
+    }));
 
-    return { 
-      accountBalance, monthIncomes, monthExpenses, 
-      expensesByCategory: formatChart(catMap, cats), 
+    return {
+      accountBalance,
+      monthIncomes,
+      monthExpenses,
+      expensesByCategory: formatChart(catMap, cats),
       expensesByAccount: formatChart(accountMap, accountsWithColor),
-      displayAccountBalances: cs.filter(c => c.type === 'checking' || c.type === 'investment').map(c => ({ ...c, balance: balancesByAccountMap[c.id] || 0, formattedBalance: this.fm(balancesByAccountMap[c.id] || 0) }))
+      displayAccountBalances: cs
+        .filter((c) => c.type === 'checking' || c.type === 'investment')
+        .map((c) => ({
+          ...c,
+          balance: balancesByAccountMap[c.id] || 0,
+          formattedBalance: this.fm(balancesByAccountMap[c.id] || 0),
+        })),
     };
   });
 
   headerTitle = computed(() => {
-    const map: Record<string, string> = { dashboard: 'Overview', transactions: 'Transactions', cards: 'Cards', accounts: 'Accounts', categories: 'Categories' };
+    const map: Record<string, string> = {
+      dashboard: 'Overview',
+      transactions: 'Transactions',
+      cards: 'Cards',
+      accounts: 'Accounts',
+      categories: 'Categories',
+    };
     return map[this.activeTab()] || 'App';
   });
 
   currentMonthName = computed(() => {
     const [year, month] = this.currentMonthYear().split('-');
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   });
 
   summaryCards = computed(() => [
-    { title: 'Account Balance', amount: this.dash().accountBalance, iconClass: 'ph ph-wallet', bgIcon: '', highlight: true, tooltip: 'Sum of all checking accounts' },
-    { title: 'Month Incomes', amount: this.dash().monthIncomes, iconClass: 'ph ph-trend-up text-green-600', bgIcon: 'bg-green-100', highlight: false, tooltip: '' },
-    { title: 'Month Expenses', amount: this.dash().monthExpenses, iconClass: 'ph ph-trend-down text-red-600', bgIcon: 'bg-red-100', highlight: false, tooltip: '' }
+    {
+      title: 'Account Balance',
+      amount: this.dash().accountBalance,
+      iconClass: 'ph ph-wallet',
+      bgIcon: '',
+      highlight: true,
+      tooltip: 'Sum of all checking accounts',
+    },
+    {
+      title: 'Month Incomes',
+      amount: this.dash().monthIncomes,
+      iconClass: 'ph ph-trend-up text-green-600',
+      bgIcon: 'bg-green-100',
+      highlight: false,
+      tooltip: '',
+    },
+    {
+      title: 'Month Expenses',
+      amount: this.dash().monthExpenses,
+      iconClass: 'ph ph-trend-down text-red-600',
+      bgIcon: 'bg-red-100',
+      highlight: false,
+      tooltip: '',
+    },
   ]);
 
   chartCards = computed(() => [
     { title: 'Expenses by Category (Month)', data: this.dash().expensesByCategory },
-    { title: 'Expenses by Account/Card (Month)', data: this.dash().expensesByAccount }
+    { title: 'Expenses by Account/Card (Month)', data: this.dash().expensesByAccount },
   ]);
 
   // --- ACTIONS ---
 
-  fm(value: number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0); }
+  fm(value: number) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+      value || 0,
+    );
+  }
   fd(dateString: string) {
     if (!dateString) return '';
     const [year, month, day] = dateString.split('-');
@@ -210,32 +339,55 @@ export class AppComponent implements OnInit {
   changeMonth(delta: number) {
     const [year, month] = this.currentMonthYear().split('-').map(Number);
     let newDate = new Date(year, month - 1 + delta, 1);
-    this.currentMonthYear.set(`${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`);
+    this.currentMonthYear.set(
+      `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`,
+    );
   }
 
   getCategory(id: string, isBill: boolean) {
-    if (isBill) return { name: 'Transfer', color: 'bg-indigo-100 text-indigo-600', iconClass: 'ph ph-arrows-left-right' };
-    const cat = this.categories().find(c => c.id === id);
-    return cat ? { ...cat, iconClass: this.iconMap[cat.iconName] || 'ph ph-question' } : { name: 'Unknown', color: 'bg-gray-100 text-gray-500', iconClass: 'ph ph-question' };
+    if (isBill)
+      return {
+        name: 'Transfer',
+        color: 'bg-indigo-100 text-indigo-600',
+        iconClass: 'ph ph-arrows-left-right',
+      };
+    const cat = this.categories().find((c) => c.id === id);
+    return cat
+      ? { ...cat, iconClass: this.iconMap[cat.iconName] || 'ph ph-question' }
+      : { name: 'Unknown', color: 'bg-gray-100 text-gray-500', iconClass: 'ph ph-question' };
   }
 
-  getAccount(id: string) { return this.accounts().find(c => c.id === id) || { name: 'Unknown' }; }
+  getAccount(id: string) {
+    return this.accounts().find((c) => c.id === id) || { name: 'Unknown' };
+  }
 
   openTransactionModal(t: any = null) {
-    if (t) { this.transactionForm.set({ ...t }); } 
-    else {
-      const cat = this.categories().find(c => c.type === 'expense');
+    if (t) {
+      this.transactionForm.set({ ...t });
+    } else {
+      const cat = this.categories().find((c) => c.type === 'expense');
       const con = this.accounts()[0];
-      this.transactionForm.set({ description: '', amount: '', type: 'expense', category: cat?.id || '', account: con?.id || '', date: new Date().toISOString().split('T')[0] });
+      this.transactionForm.set({
+        description: '',
+        amount: '',
+        type: 'expense',
+        category: cat?.id || '',
+        account: con?.id || '',
+        date: new Date().toISOString().split('T')[0],
+      });
     }
     this.transactionModalOpen.set(true);
   }
 
-  closeTransactionModal() { this.transactionModalOpen.set(false); }
-  updateForm(field: string, value: any) { this.transactionForm.set({ ...this.transactionForm(), [field]: value }); }
-  
+  closeTransactionModal() {
+    this.transactionModalOpen.set(false);
+  }
+  updateForm(field: string, value: any) {
+    this.transactionForm.set({ ...this.transactionForm(), [field]: value });
+  }
+
   setType(type: string) {
-    const cat = this.categories().find(c => c.type === type);
+    const cat = this.categories().find((c) => c.type === type);
     this.transactionForm.set({ ...this.transactionForm(), type, category: cat?.id || '' });
   }
 
@@ -250,54 +402,88 @@ export class AppComponent implements OnInit {
     this.closeTransactionModal();
   }
 
-  deleteTransaction(id: string) { this.financeService.deleteTransaction(id); }
+  deleteTransaction(id: string) {
+    this.financeService.deleteTransaction(id);
+  }
 
   openCategoryForm(cat: any = null) {
-    this.categoryForm.set(cat ? {...cat} : { name: '', type: 'expense', color: this.availableColors[0], iconName: 'Tags' });
+    this.categoryForm.set(
+      cat
+        ? { ...cat }
+        : { name: '', type: 'expense', color: this.availableColors[0], iconName: 'Tags' },
+    );
     this.categoryFormOpen.set(true);
   }
-  closeCategoryForm() { this.categoryFormOpen.set(false); }
-  updateCategoryForm(field: string, value: any) { this.categoryForm.set({ ...this.categoryForm(), [field]: value }); }
+  closeCategoryForm() {
+    this.categoryFormOpen.set(false);
+  }
+  updateCategoryForm(field: string, value: any) {
+    this.categoryForm.set({ ...this.categoryForm(), [field]: value });
+  }
   saveCategory() {
     const form = this.categoryForm();
-    if(form.id) this.financeService.updateCategory(form);
+    if (form.id) this.financeService.updateCategory(form);
     else this.financeService.addCategory(form);
     this.closeCategoryForm();
   }
-  deleteCategory(id: string) { this.financeService.deleteCategory(id); }
+  deleteCategory(id: string) {
+    this.financeService.deleteCategory(id);
+  }
 
   openAccountForm(isCard: boolean, account: any = null) {
-    this.accountForm.set(account ? {...account} : (
-      isCard 
-        ? { name: '', type: 'credit_card', closingDay: 1, dueDay: 10, cardLastDigits: '1234', cardColor: this.cardColors[0] }
-        : { name: '', type: 'checking', initialBalance: 0 }
-    ));
+    this.accountForm.set(
+      account
+        ? { ...account }
+        : isCard
+          ? {
+              name: '',
+              type: 'credit_card',
+              closingDay: 1,
+              dueDay: 10,
+              cardLastDigits: '1234',
+              cardColor: this.cardColors[0],
+            }
+          : { name: '', type: 'checking', initialBalance: 0 },
+    );
     this.accountFormOpen.set(true);
   }
-  closeAccountForm() { this.accountFormOpen.set(false); }
-  updateAccountForm(field: string, value: any) { this.accountForm.set({ ...this.accountForm(), [field]: value }); }
+  closeAccountForm() {
+    this.accountFormOpen.set(false);
+  }
+  updateAccountForm(field: string, value: any) {
+    this.accountForm.set({ ...this.accountForm(), [field]: value });
+  }
   saveAccount() {
     const form = this.accountForm();
-    if(form.type === 'checking' || form.type === 'investment') form.initialBalance = parseFloat(form.initialBalance.toString().replace(',', '.')) || 0;
-    if(form.id) this.financeService.updateAccount(form);
+    if (form.type === 'checking' || form.type === 'investment')
+      form.initialBalance = parseFloat(form.initialBalance.toString().replace(',', '.')) || 0;
+    if (form.id) this.financeService.updateAccount(form);
     else this.financeService.addAccount(form);
     this.closeAccountForm();
   }
-  deleteAccount(id: string) { this.financeService.deleteAccount(id); }
+  deleteAccount(id: string) {
+    this.financeService.deleteAccount(id);
+  }
 
   async refreshAccount(account: any) {
     if (!account.providerItemId) {
-      alert('Erro: Esta conta não possui uma conexão vinculada no banco. Certifique-se de que a coluna provider_item_id foi adicionada no banco de dados e reconecte.');
+      alert(
+        'Erro: Esta conta não possui uma conexão vinculada no banco. Certifique-se de que a coluna provider_item_id foi adicionada no banco de dados e reconecte.',
+      );
       return;
     }
     this.syncingAccountId.set(account.id);
     try {
       const res = await this.financeService.syncPluggyAccount(account.providerItemId);
-      alert(`Sincronização concluída!\n\nForam adicionadas ${res.transactions_added} novas transações dos últimos 30 dias para a conta "${account.name}".`);
+      alert(
+        `Sincronização concluída!\n\nForam adicionadas ${res.transactions_added} novas transações dos últimos 30 dias para a conta "${account.name}".`,
+      );
       await this.financeService.loadData();
     } catch (err) {
       console.error(err);
-      alert('Ocorreu um erro ao atualizar a conta. Verifique se o servidor está online e se a coluna provider_item_id foi adicionada no banco de dados.');
+      alert(
+        'Ocorreu um erro ao atualizar a conta. Verifique se o servidor está online e se a coluna provider_item_id foi adicionada no banco de dados.',
+      );
     } finally {
       this.syncingAccountId.set(null);
     }
@@ -307,19 +493,26 @@ export class AppComponent implements OnInit {
     const [year, month] = this.currentMonthYear().split('-').map(Number);
     const dayC = card.closingDay || 1;
     const dayD = card.dueDay || 10;
-    
+
     const closingDate = new Date(year, month - 1, dayC);
     const openingDate = new Date(year, month - 2, dayC);
     const dueDate = new Date(year, dayD <= dayC ? month : month - 1, dayD);
-    
-    let totalExpenses = 0; let totalIncomes = 0; let paidAmount = 0;
 
-    this.globalTransactions().forEach(t => {
-      if (t.type === 'credit_card_payment' && t.destinationAccount === card.id && t.referenceMonth === this.currentMonthYear()) {
-        paidAmount += t.amount; return;
+    let totalExpenses = 0;
+    let totalIncomes = 0;
+    let paidAmount = 0;
+
+    this.globalTransactions().forEach((t) => {
+      if (
+        t.type === 'credit_card_payment' &&
+        t.destinationAccount === card.id &&
+        t.referenceMonth === this.currentMonthYear()
+      ) {
+        paidAmount += t.amount;
+        return;
       }
       if (t.account === card.id && t.type !== 'credit_card_payment') {
-        const dateT = new Date(t.date + 'T12:00:00'); 
+        const dateT = new Date(t.date + 'T12:00:00');
         if (dateT >= openingDate && dateT < closingDate) {
           if (t.type === 'expense') totalExpenses += t.amount;
           if (t.type === 'income') totalIncomes += t.amount;
@@ -328,10 +521,15 @@ export class AppComponent implements OnInit {
     });
 
     let billAmount = Math.max(0, totalExpenses - totalIncomes);
-    
+
     // If it's the current month and the card is linked to Pluggy, use the real-time balance
     const currentCalendarMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    if (card.providerId === 'pluggy' && this.currentMonthYear() === currentCalendarMonth && card.initialBalance !== undefined && card.initialBalance !== null) {
+    if (
+      card.providerId === 'pluggy' &&
+      this.currentMonthYear() === currentCalendarMonth &&
+      card.initialBalance !== undefined &&
+      card.initialBalance !== null
+    ) {
       billAmount = card.initialBalance;
     }
 
@@ -347,11 +545,13 @@ export class AppComponent implements OnInit {
   openPayBillModal(card: any, bill: any) {
     this.billData.set({ card, bill });
     this.billError.set('');
-    const debitAccount = this.accounts().find(c => c.type === 'debit');
+    const debitAccount = this.accounts().find((c) => c.type === 'debit');
     this.billSourceAccount.set(debitAccount ? debitAccount.id : '');
     this.paymentModalOpen.set(true);
   }
-  closePayBillModal() { this.paymentModalOpen.set(false); }
+  closePayBillModal() {
+    this.paymentModalOpen.set(false);
+  }
 
   getBtnLabel() {
     const t = this.transactionForm();
@@ -362,11 +562,18 @@ export class AppComponent implements OnInit {
   confirmBillPayment() {
     const { card, bill } = this.billData();
     const sourceAccount = this.billSourceAccount();
-    if (!sourceAccount) { this.billError.set('Select an account to pay the bill.'); return; }
+    if (!sourceAccount) {
+      this.billError.set('Select an account to pay the bill.');
+      return;
+    }
 
-    const debitAccount = this.dash().displayAccountBalances.find((c: any) => c.id === sourceAccount);
+    const debitAccount = this.dash().displayAccountBalances.find(
+      (c: any) => c.id === sourceAccount,
+    );
     if (debitAccount && bill.billAmount > (debitAccount as any).balance!) {
-      this.billError.set(`Insufficient balance. You have only ${this.fm((debitAccount as any).balance!)} in this account.`);
+      this.billError.set(
+        `Insufficient balance. You have only ${this.fm((debitAccount as any).balance!)} in this account.`,
+      );
       return;
     }
 
@@ -378,17 +585,25 @@ export class AppComponent implements OnInit {
       sourceAccount: sourceAccount,
       destinationAccount: card.id,
       date: new Date().toISOString().split('T')[0],
-      referenceMonth: this.currentMonthYear()
+      referenceMonth: this.currentMonthYear(),
     };
-    
+
     this.financeService.addTransaction(billTransaction as any);
     this.closePayBillModal();
   }
 
   getGradient(data: any[]) {
     let cumulative = 0;
-    return 'conic-gradient(' + data.map(d => {
-      const start = cumulative; cumulative += d.percentage; return `${d.hexColor} ${start}% ${cumulative}%`;
-    }).join(', ') + ')';
+    return (
+      'conic-gradient(' +
+      data
+        .map((d) => {
+          const start = cumulative;
+          cumulative += d.percentage;
+          return `${d.hexColor} ${start}% ${cumulative}%`;
+        })
+        .join(', ') +
+      ')'
+    );
   }
 }
