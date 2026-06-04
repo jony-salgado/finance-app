@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FinanceService } from './services/finance.service';
 import { CardResumoComponent } from './components/card-resumo/card-resumo.component';
 import { CardPizzaComponent } from './components/card-pizza/card-pizza.component';
+import { OpenFinanceButtonComponent } from './components/open-finance-button/open-finance-button.component';
 import { Transaction, Account, Category } from './models';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, CardResumoComponent, CardPizzaComponent],
+  imports: [CommonModule, CardResumoComponent, CardPizzaComponent, OpenFinanceButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html'
 })
@@ -45,6 +46,7 @@ export class AppComponent implements OnInit {
   billData = signal<any>(null);
   billSourceAccount = signal('');
   billError = signal('');
+  syncingAccountId = signal<string | null>(null);
 
   menuTabs = [
     { id: 'dashboard', label: 'Home', icon: 'ph ph-house' },
@@ -56,6 +58,10 @@ export class AppComponent implements OnInit {
 
   ngOnInit() {
     this.loadExternalIcons();
+    // Periodically reload data to pick up automatic background syncs (every 30 seconds)
+    setInterval(() => {
+      this.financeService.loadData();
+    }, 30000);
   }
 
   private loadExternalIcons() {
@@ -279,6 +285,24 @@ export class AppComponent implements OnInit {
   }
   deleteAccount(id: string) { this.financeService.deleteAccount(id); }
 
+  async refreshAccount(account: any) {
+    if (!account.providerItemId) {
+      alert('Erro: Esta conta não possui uma conexão vinculada no banco. Certifique-se de que a coluna provider_item_id foi adicionada no banco de dados e reconecte.');
+      return;
+    }
+    this.syncingAccountId.set(account.id);
+    try {
+      const res = await this.financeService.syncPluggyAccount(account.providerItemId);
+      alert(`Sincronização concluída!\n\nForam adicionadas ${res.transactions_added} novas transações dos últimos 30 dias para a conta "${account.name}".`);
+      await this.financeService.loadData();
+    } catch (err) {
+      console.error(err);
+      alert('Ocorreu um erro ao atualizar a conta. Verifique se o servidor está online e se a coluna provider_item_id foi adicionada no banco de dados.');
+    } finally {
+      this.syncingAccountId.set(null);
+    }
+  }
+
   getBillSummary(card: any) {
     const [year, month] = this.currentMonthYear().split('-').map(Number);
     const dayC = card.closingDay || 1;
@@ -303,7 +327,14 @@ export class AppComponent implements OnInit {
       }
     });
 
-    const billAmount = Math.max(0, totalExpenses - totalIncomes);
+    let billAmount = Math.max(0, totalExpenses - totalIncomes);
+    
+    // If it's the current month and the card is linked to Pluggy, use the real-time balance
+    const currentCalendarMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    if (card.providerId === 'pluggy' && this.currentMonthYear() === currentCalendarMonth && card.initialBalance !== undefined && card.initialBalance !== null) {
+      billAmount = card.initialBalance;
+    }
+
     const today = new Date();
     let status = 'open';
     if (paidAmount >= billAmount && billAmount > 0) status = 'paid';

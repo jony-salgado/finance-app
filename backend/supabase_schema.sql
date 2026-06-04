@@ -1,8 +1,4 @@
-# Supabase SQL Setup
-
-Run the following SQL in your Supabase SQL Editor to create the necessary tables.
-
-```sql
+-- Supabase SQL Setup
 CREATE TABLE categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
@@ -22,6 +18,8 @@ CREATE TABLE accounts (
     due_day INT,
     card_last_digits TEXT,
     card_color TEXT,
+    provider_id TEXT,
+    provider_account_id TEXT UNIQUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -42,11 +40,15 @@ CREATE TABLE transactions (
     ignore_in_analytics BOOLEAN DEFAULT false,
     date DATE NOT NULL,
     reference_month TEXT,
+    provider_transaction_id TEXT UNIQUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Create an index for faster lookups during webhooks
+CREATE INDEX IF NOT EXISTS idx_accounts_provider_account_id ON accounts(provider_account_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_provider_transaction_id ON transactions(provider_transaction_id);
 
 -- Enable Row Level Security (RLS) - Optional for now, but recommended for production
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-```

@@ -21,6 +21,9 @@ export interface Account {
   cardLastDigits?: string;
   cardColor?: string;
   balance?: number;
+  providerId?: string;
+  providerAccountId?: string;
+  providerItemId?: string;
 }
 
 export interface Category {
@@ -30,4 +33,9 @@ export interface Category {
   color: string;
   type: string;
   iconClass?: string;
+}
+
+export interface OpenFinanceLinkTokenResponse {
+  linkToken: string;
+  expiresAt?: string;
 }

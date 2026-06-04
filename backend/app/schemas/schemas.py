@@ -49,6 +49,9 @@ class AccountBase(BaseModel):
     due_day: Optional[int] = Field(None, alias="dueDay")
     card_last_digits: Optional[str] = Field(None, alias="cardLastDigits")
     card_color: Optional[str] = Field(None, alias="cardColor")
+    provider_id: Optional[str] = Field(None, alias="providerId")
+    provider_account_id: Optional[str] = Field(None, alias="providerAccountId")
+    provider_item_id: Optional[str] = Field(None, alias="providerItemId")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -60,3 +63,23 @@ class AccountCreate(AccountBase):
 
 class Account(AccountBase):
     id: str
+
+# --- Open Finance Schemas ---
+
+class OpenFinanceLinkTokenResponse(BaseModel):
+    link_token: str = Field(..., alias="linkToken")
+    expires_at: Optional[str] = Field(None, alias="expiresAt")
+
+class PluggyTransactionWebhook(BaseModel):
+    id: str
+    description: str
+    amount: float
+    date: date
+    category: Optional[str] = None
+    account_id: str = Field(..., alias="accountId")
+    type: Optional[str] = None
+
+class OpenFinanceWebhookPayload(BaseModel):
+    event: str # e.g., 'item/created', 'item/updated', 'transaction/created'
+    item_id: Optional[str] = Field(None, alias="itemId")
+    transaction: Optional[PluggyTransactionWebhook] = None

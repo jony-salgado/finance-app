@@ -1,6 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Transaction, Account, Category } from '../models';
+import { Transaction, Account, Category, OpenFinanceLinkTokenResponse } from '../models';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
@@ -66,6 +66,27 @@ export class FinanceService {
     if (!colorClasses) return '#cbd5e1'; 
     for (const key in this.tailwindColors) { if (colorClasses.includes(key)) return this.tailwindColors[key]; }
     return '#cbd5e1';
+  }
+
+  // Open Finance
+  async getOpenFinanceLinkToken(): Promise<OpenFinanceLinkTokenResponse> {
+    try {
+      this.error.set(null);
+      return await firstValueFrom(this.http.post<OpenFinanceLinkTokenResponse>(`${this.apiUrl}/open-finance/link-token`, {}));
+    } catch (error: any) {
+      console.error('Error getting link token', error);
+      this.error.set(error.error?.detail || 'Error getting Open Finance link token.');
+      throw error;
+    }
+  }
+
+  async syncPluggyAccount(itemId: string): Promise<any> {
+    try {
+      return await firstValueFrom(this.http.post<any>(`${this.apiUrl}/open-finance/sync-item/${itemId}`, {}));
+    } catch (error) {
+      console.error('Error syncing account', error);
+      throw error;
+    }
   }
 
   // Actions

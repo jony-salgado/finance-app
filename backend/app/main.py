@@ -1,6 +1,8 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api.api import api_router
+from .api.endpoints.open_finance import periodic_pluggy_sync
 
 app = FastAPI(title="FinanceApp API", description="API for finance management and Open Finance")
 
@@ -14,6 +16,10 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(periodic_pluggy_sync())
 
 @app.get("/")
 def read_root():
