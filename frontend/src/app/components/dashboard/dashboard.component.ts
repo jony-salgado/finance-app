@@ -85,6 +85,9 @@ export class DashboardComponent implements OnInit {
 
   // Modals & Forms State
   transactionModalOpen = signal(false);
+  transactionDetailModalOpen = signal(false);
+  selectedTransactionForDetail = signal<any>(null);
+  deleteConfirmOpen = signal(false);
   transactionForm = signal<any>({
     description: '',
     amount: 0,
@@ -565,6 +568,14 @@ export class DashboardComponent implements OnInit {
 
   // --- ACTIONS ---
 
+  selectTab(tabId: 'dashboard' | 'transactions' | 'cards' | 'accounts' | 'categories' | 'meta') {
+    this.activeTab.set(tabId);
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.scrollTop = 0;
+    }
+  }
+
   startEditingGoal() {
     this.weeklyGoalInput.set(this.weeklyGoal());
     this.weeklyGoalEditing.set(true);
@@ -624,6 +635,31 @@ export class DashboardComponent implements OnInit {
 
   getAccount(id: string) {
     return this.accounts().find((c) => c.id === id) || { name: 'Unknown' };
+  }
+
+  openTransactionDetail(t: any) {
+    this.selectedTransactionForDetail.set(t);
+    this.deleteConfirmOpen.set(false);
+    this.transactionDetailModalOpen.set(true);
+  }
+
+  closeTransactionDetail() {
+    this.transactionDetailModalOpen.set(false);
+    this.selectedTransactionForDetail.set(null);
+  }
+
+  editFromDetail() {
+    const t = this.selectedTransactionForDetail();
+    this.closeTransactionDetail();
+    this.openTransactionModal(t);
+  }
+
+  confirmDeleteFromDetail() {
+    const t = this.selectedTransactionForDetail();
+    if (t) {
+      this.deleteTransaction(t.id);
+      this.closeTransactionDetail();
+    }
   }
 
   openTransactionModal(t: any = null) {

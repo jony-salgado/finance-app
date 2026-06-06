@@ -8,7 +8,7 @@
     </div>
     <div class="flex md:flex-col w-full justify-around md:justify-start gap-1 overflow-x-auto md:overflow-visible">
       @for (tab of menuTabs; track tab.id) {
-        <button (click)="activeTab.set($any(tab.id))"
+        <button (click)="selectTab($any(tab.id))"
           class="flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 rounded-xl transition min-w-[64px]"
           [class.text-indigo-600]="activeTab() === tab.id" [class.md:bg-indigo-50]="activeTab() === tab.id"
           [class.text-slate-400]="activeTab() !== tab.id" [class.hover:text-slate-600]="activeTab() !== tab.id" [class.md:hover:bg-slate-100]="activeTab() !== tab.id">
@@ -28,7 +28,7 @@
   </nav>
 
   <!-- MAIN CONTENT -->
-  <main class="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full h-screen overflow-y-auto">
+  <main class="flex-1 px-4 pt-8 pb-28 md:p-8 max-w-5xl mx-auto w-full h-screen overflow-y-auto">
     
     <!-- ERROR ALERT -->
     @if (error()) {
@@ -104,21 +104,21 @@
 
   <!-- TRANSACTION MODAL (NEW / EDIT) -->
   @if (transactionModalOpen()) {
-    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-end md:items-center p-4">
-      <div class="bg-white w-full max-w-lg rounded-t-3xl md:rounded-2xl p-6 md:p-8 shadow-2xl animate-in zoom-in-95">
-        <div class="flex justify-between items-center mb-6">
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-in fade-in duration-200">
+      <div class="bg-white w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl animate-in zoom-in-95 max-h-[90vh] flex flex-col border border-slate-100">
+        <div class="flex justify-between items-center mb-6 shrink-0">
           <h2 class="text-xl font-bold text-slate-800">{{ transactionForm().id ? 'Edit Transaction' : 'New Transaction' }}</h2>
           <button (click)="closeTransactionModal()" class="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
         </div>
         
-        @if (!transactionForm().id) {
-          <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
-            <button (click)="setType('expense')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="transactionForm().type === 'expense' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500'">Expense</button>
-            <button (click)="setType('income')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="transactionForm().type === 'income' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500'">Income</button>
-          </div>
-        }
+        <form (submit)="$event.preventDefault(); saveTransaction()" class="overflow-y-auto flex-1 pr-1 -mr-1 space-y-5 pb-2">
+          @if (!transactionForm().id) {
+            <div class="flex bg-slate-100 p-1 rounded-xl mb-1">
+              <button type="button" (click)="setType('expense')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="transactionForm().type === 'expense' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500'">Expense</button>
+              <button type="button" (click)="setType('income')" class="flex-1 py-2 rounded-lg font-medium text-sm transition-all" [class]="transactionForm().type === 'income' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500'">Income</button>
+            </div>
+          }
 
-        <form (submit)="$event.preventDefault(); saveTransaction()" class="space-y-5">
           <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Value</label>
             <div class="relative"><span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">R$</span>
@@ -229,10 +229,105 @@
             <input type="date" required [value]="transactionForm().date" (input)="updateForm('date', $any($event.target).value)"
                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100" />
           </div>
-          <button type="submit" class="w-full py-4 rounded-xl font-bold text-white shadow-md transition-all active:scale-95" [class]="transactionForm().type === 'expense' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'">
+          <button type="submit" class="w-full py-4 rounded-xl font-bold text-white shadow-md transition-all active:scale-95 shrink-0" [class]="transactionForm().type === 'expense' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'">
             {{ getBtnLabel() }}
           </button>
         </form>
+      </div>
+    </div>
+  }
+
+  <!-- TRANSACTION DETAILS MODAL -->
+  @if (transactionDetailModalOpen() && selectedTransactionForDetail(); as t) {
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-in fade-in duration-200">
+      <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 max-h-[90vh] flex flex-col border border-slate-100">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 shrink-0">
+          <h2 class="text-lg font-bold text-slate-800">Transaction Details</h2>
+          <button (click)="closeTransactionDetail()" class="p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors"><i class="ph ph-x"></i></button>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="overflow-y-auto flex-1 space-y-6 pr-1 -mr-1 pb-4">
+          <!-- Value Header -->
+          <div class="text-center bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <span class="text-3xl font-extrabold" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
+              {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
+            </span>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-2">{{ t.type }}</p>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Description</h4>
+            <p class="text-base font-semibold text-slate-800 break-words whitespace-normal">{{ t.description }}</p>
+          </div>
+
+          <!-- Details Grid -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Date</h4>
+              <p class="text-sm font-semibold text-slate-700">{{ t.formattedDate }}</p>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Account/Card</h4>
+              <p class="text-sm font-semibold text-slate-700"><i class="ph ph-credit-card text-slate-400 align-middle mr-1"></i>{{ t.accountName }}</p>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Category</h4>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs {{ t.catColor }}">
+                  <i [class]="t.catIcon"></i>
+                </span>
+                <span class="text-sm font-semibold text-slate-700">{{ t.catName }}</span>
+              </div>
+            </div>
+            @if (t.spendingGroup && t.type === 'expense') {
+              <div>
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Spending Classification</h4>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border mt-0.5"
+                      [class.bg-indigo-50]="t.spendingGroup === 'weekly'" [class.text-indigo-700]="t.spendingGroup === 'weekly'" [class.border-indigo-100]="t.spendingGroup === 'weekly'"
+                      [class.bg-slate-50]="t.spendingGroup === 'fixed'" [class.text-slate-600]="t.spendingGroup === 'fixed'" [class.border-slate-200]="t.spendingGroup === 'fixed'"
+                      [class.bg-red-50]="t.spendingGroup === 'emergency'" [class.text-red-700]="t.spendingGroup === 'emergency'" [class.border-red-100]="t.spendingGroup === 'emergency'">
+                  {{ t.spendingGroup }}
+                </span>
+              </div>
+            }
+          </div>
+
+          <!-- Tags -->
+          @if (t.isEstorno || t.isBill) {
+            <div>
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Status</h4>
+              <div class="flex gap-2">
+                @if (t.isEstorno) {
+                  <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Refund</span>
+                }
+                @if (t.isBill) {
+                  <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Card Bill Payment</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Action Buttons / Confirmation -->
+        <div class="border-t border-slate-100 pt-4 shrink-0">
+          @if (deleteConfirmOpen()) {
+            <div class="bg-red-50 p-4 rounded-xl border border-red-100 mb-4 animate-in slide-in-from-bottom-2">
+              <p class="text-sm font-semibold text-red-800 mb-3 text-center">Are you sure you want to delete this transaction?</p>
+              <div class="flex gap-3">
+                <button (click)="confirmDeleteFromDetail()" class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-red-200 active:scale-95">Yes, Delete</button>
+                <button (click)="deleteConfirmOpen.set(false)" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-sm transition-all active:scale-95">Cancel</button>
+              </div>
+            </div>
+          } @else {
+            <div class="flex gap-3">
+              <button (click)="editFromDetail()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"><i class="ph ph-pencil-simple text-base"></i> Edit</button>
+              <button (click)="deleteConfirmOpen.set(true)" class="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-1.5"><i class="ph ph-trash text-base"></i> Delete</button>
+            </div>
+          }
+        </div>
       </div>
     </div>
   }

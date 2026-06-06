@@ -28,29 +28,26 @@
   } @else {
     <div class="space-y-3">
       @for (t of parent().displayTransactions(); track t.id) {
-        <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group" 
+        <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group cursor-pointer" 
+             (click)="parent().openTransactionDetail(t)"
              [class.bg-indigo-50]="t.isBill" 
              [class.bg-opacity-30]="t.isBill" 
              [class.hover:bg-slate-50]="!t.isBill">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center {{t.catColor}}">
+          <div class="flex items-center gap-4 min-w-0 flex-1">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center {{t.catColor}} shrink-0">
               <i [class]="t.catIcon + ' text-xl'"></i>
             </div>
-            <div>
-              <p class="font-semibold text-slate-800">{{ t.description }}</p>
-              <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                <span>{{ t.formattedDate }}</span><span>•</span><span><i class="ph ph-credit-card"></i> {{ t.accountName }}</span>
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold text-slate-800 break-words whitespace-normal">{{ t.description }}</p>
+              <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
+                <span>{{ t.formattedDate }}</span><span>•</span><span><i class="ph ph-credit-card text-xs"></i> {{ t.accountName }}</span>
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="font-bold" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
+          <div class="flex items-center gap-3 shrink-0 pl-2">
+            <span class="font-bold text-sm md:text-base shrink-0" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
               {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
             </span>
-            <div class="flex md:opacity-0 group-hover:opacity-100 transition">
-              <button (click)="parent().openTransactionModal(t)" class="p-2 text-slate-300 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
-              <button (click)="parent().deleteTransaction(t.id)" class="p-2 text-slate-300 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
-            </div>
           </div>
         </div>
       }

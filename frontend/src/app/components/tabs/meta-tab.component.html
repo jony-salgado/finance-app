@@ -115,8 +115,16 @@
 
   <!-- Row 2: List and Speedometer Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-    <!-- Left Column: Weekly Transactions List -->
-    <div class="lg:col-span-2 space-y-6">
+    <!-- Right Column: Speedometer Gauge (First in DOM to render on top on mobile) -->
+    <div class="lg:col-span-1 lg:order-2">
+      <app-card-velocimetro 
+        [goal]="parent().weeklyGoal()" 
+        [current]="parent().weeklyExpensesWeeklyTotal()">
+      </app-card-velocimetro>
+    </div>
+
+    <!-- Left Column: Weekly Transactions List (Second in DOM, ordered first on desktop) -->
+    <div class="lg:col-span-2 lg:order-1 space-y-6">
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
         <h3 class="font-bold text-slate-800 mb-4 flex items-center justify-between w-full">
           <span class="flex items-center gap-2">
@@ -137,47 +145,34 @@
         } @else {
           <div class="space-y-3">
             @for (t of parent().displayWeeklyTransactions(); track t.id) {
-              <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group" 
+              <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group cursor-pointer" 
+                   (click)="parent().openTransactionDetail(t)"
                    [class.bg-indigo-50]="t.isBill" 
                    [class.bg-opacity-30]="t.isBill" 
                    [class.hover:bg-slate-50]="!t.isBill">
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 min-w-0 flex-1">
                   <div class="w-11 h-11 rounded-full flex items-center justify-center {{t.catColor}} shrink-0">
                     <i [class]="t.catIcon + ' text-lg'"></i>
                   </div>
-                  <div>
-                    <p class="font-semibold text-sm text-slate-800">{{ t.description }}</p>
-                    <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-sm text-slate-800 break-words whitespace-normal">{{ t.description }}</p>
+                    <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5 flex-wrap">
                       <span>{{ t.formattedDate }}</span>
                       <span>•</span>
-                      <span><i class="ph ph-credit-card"></i> {{ t.accountName }}</span>
+                      <span><i class="ph ph-credit-card text-xs"></i> {{ t.accountName }}</span>
                     </div>
                   </div>
                 </div>
-                <div class="flex items-center gap-3">
-                  <span class="font-bold text-sm" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
+                <div class="flex items-center gap-3 shrink-0 pl-2">
+                  <span class="font-bold text-sm shrink-0" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
                     {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
                   </span>
-                  <div class="flex opacity-0 group-hover:opacity-100 transition shrink-0">
-                    @if (!t.isBill) { 
-                      <button (click)="parent().openTransactionModal(t)" class="p-1.5 text-slate-300 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-base"></i></button> 
-                    }
-                    <button (click)="parent().deleteTransaction(t.id)" class="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-base"></i></button>
-                  </div>
                 </div>
               </div>
             }
           </div>
         }
       </div>
-    </div>
-
-    <!-- Right Column: Speedometer Gauge -->
-    <div class="lg:col-span-1">
-      <app-card-velocimetro 
-        [goal]="parent().weeklyGoal()" 
-        [current]="parent().weeklyExpensesWeeklyTotal()">
-      </app-card-velocimetro>
     </div>
   </div>
 </div>
