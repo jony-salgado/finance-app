@@ -17,6 +17,7 @@ export class AuthService {
 
   currentUser = computed(() => this.sessionState()?.user ?? null);
   isAuthenticated = computed(() => !!this.sessionState());
+  token = computed(() => this.sessionState()?.access_token ?? null);
 
   constructor() {
     const router = inject(Router);
