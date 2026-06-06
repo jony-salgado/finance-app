@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CardVelocimetroComponent } from '../card-velocimetro/card-velocimetro.component';
-import type { AppComponent } from '../../app.component';
+import type { DashboardComponent } from '../dashboard/dashboard.component';
 
 @Component({
   selector: 'app-meta-tab',
@@ -11,5 +11,5 @@ import type { AppComponent } from '../../app.component';
   templateUrl: './meta-tab.component.html',
 })
 export class MetaTabComponent {
-  parent = input.required<AppComponent>();
+  parent = input.required<DashboardComponent>();
 }

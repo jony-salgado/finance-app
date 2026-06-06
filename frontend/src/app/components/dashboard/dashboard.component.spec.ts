@@ -1,4 +1,10 @@
-import { AppComponent } from './app.component';
+jest.mock('@angular/router', () => ({
+  Router: class {
+    navigate() {}
+  },
+}));
+
+import { DashboardComponent } from './dashboard.component';
 
 jest.mock('@angular/common', () => ({
   CommonModule: {},
@@ -9,15 +15,15 @@ jest.mock('@angular/common/http', () => ({
 }));
 
 // Mock child components to prevent Jest from loading their real ESM files and templates
-jest.mock('./components/card-resumo/card-resumo.component', () => ({
+jest.mock('../../components/card-resumo/card-resumo.component', () => ({
   CardResumoComponent: class {},
 }));
 
-jest.mock('./components/card-pizza/card-pizza.component', () => ({
+jest.mock('../../components/card-pizza/card-pizza.component', () => ({
   CardPizzaComponent: class {},
 }));
 
-jest.mock('./components/open-finance-button/open-finance-button.component', () => ({
+jest.mock('../../components/open-finance-button/open-finance-button.component', () => ({
   OpenFinanceButtonComponent: class {},
 }));
 
@@ -89,15 +95,29 @@ jest.mock('@angular/core', () => {
     computed: (fn: any) => {
       return () => fn();
     },
-    inject: () => mockFinanceService,
+    inject: (token: any) => {
+      if (token && token.name === 'FinanceService') return mockFinanceService;
+      if (token && token.name === 'AuthService') {
+        return {
+          isAuthenticated: () => true,
+          signOut: () => Promise.resolve(),
+        };
+      }
+      if (token && token.name === 'Router') {
+        return {
+          navigate: () => {},
+        };
+      }
+      return mockFinanceService;
+    },
   };
 });
 
-describe('AppComponent Unit Tests', () => {
-  let component: AppComponent;
+describe('DashboardComponent Unit Tests', () => {
+  let component: DashboardComponent;
 
   beforeEach(() => {
-    component = new AppComponent();
+    component = new DashboardComponent();
   });
 
   it('should compute dash balances correctly based on transactions', () => {
@@ -221,7 +241,7 @@ describe('AppComponent Unit Tests', () => {
       } as any,
     ];
 
-    const testComponent = new AppComponent();
+    const testComponent = new DashboardComponent();
     testComponent.currentMonthYear.set('2026-06');
     testComponent.selectedCardIdForTransactions.set('card-1');
 

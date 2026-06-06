@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { AppComponent } from '../../app.component';
+import type { DashboardComponent } from '../dashboard/dashboard.component';
 
 @Component({
   selector: 'app-transactions-tab',
@@ -10,5 +10,5 @@ import type { AppComponent } from '../../app.component';
   templateUrl: './transactions-tab.component.html',
 })
 export class TransactionsTabComponent {
-  parent = input.required<AppComponent>();
+  parent = input.required<DashboardComponent>();
 }
