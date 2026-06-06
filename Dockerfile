@@ -46,6 +46,8 @@ RUN mkdir -p /app/backend/static
 # Copy built Angular files from Stage 1 into the backend's static directory
 COPY --from=frontend-builder /app/frontend/dist/finance-app/browser/ /app/backend/static/
 
+ENV PYTHONPATH=/app/backend
+
 # Set working directory to the backend folder to run uvicorn directly
 WORKDIR /app/backend
 
