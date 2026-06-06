@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -112,7 +113,7 @@ export class AuthService {
     const { error } = await this.supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: environment.redirectUrl,
       },
     });
 
@@ -147,5 +148,12 @@ export class AuthService {
     if (error) {
       throw error;
     }
+  }
+
+  /**
+   * Listen to authentication state changes.
+   */
+  onAuthStateChange(callback: (event: any, session: Session | null) => void) {
+    return this.supabase.auth.onAuthStateChange(callback);
   }
 }

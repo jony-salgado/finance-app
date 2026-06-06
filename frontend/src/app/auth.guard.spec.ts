@@ -59,6 +59,6 @@ describe('authGuard Unit Tests', () => {
     mockIsAuthenticated = false;
     const result = await (authGuard as any)();
     expect(result).toBe(false);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/login'], { preserveFragment: true });
   });
 });

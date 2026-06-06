@@ -1,4 +1,11 @@
-import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,9 +19,25 @@ import { environment } from '../../../environments/environment';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private router = inject(Router);
+
+  private authSubscription?: any;
+
+  ngOnInit() {
+    this.authSubscription = this.authService.onAuthStateChange((event, _session) => {
+      if (event === 'SIGNED_IN') {
+        this.router.navigate(['/dashboard']);
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.authSubscription) {
+      this.authSubscription.data.subscription.unsubscribe();
+    }
+  }
 
   readonly environment = environment;
 

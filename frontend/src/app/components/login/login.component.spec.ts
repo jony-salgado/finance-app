@@ -14,6 +14,13 @@ const mockAuthService = {
   signInWithOtp: jest.fn(),
   setSession: jest.fn(),
   bypassLogin: jest.fn(),
+  onAuthStateChange: jest.fn().mockReturnValue({
+    data: {
+      subscription: {
+        unsubscribe: jest.fn(),
+      },
+    },
+  }),
 };
 
 const mockRouter = {
@@ -166,5 +173,43 @@ describe('LoginComponent Unit Tests', () => {
     expect(component.successMessage()).toBeNull();
     expect(component.errorMessage()).toBe('Bypass failed');
     expect(component.loading()).toBe(false);
+  });
+
+  it('should register onAuthStateChange on ngOnInit and redirect on SIGNED_IN', () => {
+    let capturedCallback: any;
+    mockAuthService.onAuthStateChange.mockImplementation((cb: any) => {
+      capturedCallback = cb;
+      return {
+        data: {
+          subscription: {
+            unsubscribe: jest.fn(),
+          },
+        },
+      };
+    });
+
+    component.ngOnInit();
+
+    expect(mockAuthService.onAuthStateChange).toHaveBeenCalled();
+    expect(capturedCallback).toBeDefined();
+
+    capturedCallback('SIGNED_IN', null);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
+  it('should unsubscribe from auth state changes on ngOnDestroy', () => {
+    const mockUnsubscribe = jest.fn();
+    mockAuthService.onAuthStateChange.mockReturnValue({
+      data: {
+        subscription: {
+          unsubscribe: mockUnsubscribe,
+        },
+      },
+    });
+
+    component.ngOnInit();
+    component.ngOnDestroy();
+
+    expect(mockUnsubscribe).toHaveBeenCalled();
   });
 });

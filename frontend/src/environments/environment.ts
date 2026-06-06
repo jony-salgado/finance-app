@@ -9,4 +9,7 @@ try {
 
 export const environment = {
   production: !dev,
+  redirectUrl: !dev
+    ? 'https://salgado-finance-app.com.br/login'
+    : 'http://localhost:4200/login',
 };

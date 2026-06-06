@@ -13,7 +13,7 @@ export const authGuard: CanActivateFn = async () => {
     return true;
   }
 
-  // Redireciona o usuário não autenticado para a tela de login
-  router.navigate(['/login']);
+  // Redireciona o usuário não autenticado para a tela de login, preservando os parâmetros de hash
+  router.navigate(['/login'], { preserveFragment: true });
   return false;
 };

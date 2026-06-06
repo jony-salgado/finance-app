@@ -78,7 +78,7 @@ describe('AuthService Unit Tests', () => {
     expect(mockSupabaseClient.auth.signInWithOtp).toHaveBeenCalledWith({
       email: 'test@example.com',
       options: {
-        emailRedirectTo: 'http://localhost',
+        emailRedirectTo: 'http://localhost:4200/login',
       },
     });
   });
