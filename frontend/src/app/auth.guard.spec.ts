@@ -29,6 +29,7 @@ jest.mock('@angular/core', () => {
     inject: (token: any) => {
       if (token && token.name === 'AuthService') {
         return {
+          initialized: Promise.resolve(),
           isAuthenticated: () => mockIsAuthenticated,
         };
       }
@@ -47,16 +48,16 @@ describe('authGuard Unit Tests', () => {
     jest.clearAllMocks();
   });
 
-  it('should return true if user is authenticated', () => {
+  it('should return true if user is authenticated', async () => {
     mockIsAuthenticated = true;
-    const result = (authGuard as any)();
+    const result = await (authGuard as any)();
     expect(result).toBe(true);
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('should redirect to /login and return false if user is not authenticated', () => {
+  it('should redirect to /login and return false if user is not authenticated', async () => {
     mockIsAuthenticated = false;
-    const result = (authGuard as any)();
+    const result = await (authGuard as any)();
     expect(result).toBe(false);
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
   });

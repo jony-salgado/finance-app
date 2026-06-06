@@ -6,6 +6,10 @@ if (typeof window === 'undefined') {
   };
 }
 
+const mockRouter = {
+  navigate: jest.fn(),
+};
+
 const mockSupabaseClient = {
   auth: {
     getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
@@ -18,6 +22,10 @@ const mockSupabaseClient = {
 
 jest.mock('@supabase/supabase-js', () => ({
   createClient: () => mockSupabaseClient,
+}));
+
+jest.mock('@angular/router', () => ({
+  Router: class {},
 }));
 
 jest.mock('@angular/core', () => {
@@ -38,6 +46,12 @@ jest.mock('@angular/core', () => {
     signal: mockSignal,
     computed: (fn: any) => {
       return () => fn();
+    },
+    inject: (token: any) => {
+      if (token && token.name === 'Router') {
+        return mockRouter;
+      }
+      return null;
     },
   };
 });
@@ -104,5 +118,11 @@ describe('AuthService Unit Tests', () => {
       error: new Error('Error setting session'),
     });
     await expect(service.setSession('access', 'refresh')).rejects.toThrow('Error setting session');
+  });
+
+  it('should redirect to /dashboard when SIGNED_IN event is emitted', () => {
+    const callback = mockSupabaseClient.auth.onAuthStateChange.mock.calls[0][0];
+    callback('SIGNED_IN', { user: {} } as any);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 });

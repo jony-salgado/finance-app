@@ -1,11 +1,15 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private supabase: SupabaseClient;
+
+  // Promise that resolves once the initial authentication check completes
+  initialized: Promise<any>;
 
   // Use signals to manage authentication state reactively, initializing from a dev mock session if present
   private sessionState = signal<Session | null>(this.loadMockSession());
@@ -14,6 +18,8 @@ export class AuthService {
   isAuthenticated = computed(() => !!this.sessionState());
 
   constructor() {
+    const router = inject(Router);
+
     // Replace with your actual Supabase project credentials
     const supabaseUrl = 'https://aoszuzhweogqpfveitji.supabase.co';
     const supabaseAnonKey =
@@ -23,21 +29,32 @@ export class AuthService {
 
     // Fetch initial session asynchronously if there's no dev mock session already active
     if (!this.sessionState()) {
-      this.supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!this.sessionState()) {
-          this.sessionState.set(session);
-        }
-      });
+      this.initialized = this.supabase.auth
+        .getSession()
+        .then(({ data: { session } }) => {
+          if (!this.sessionState()) {
+            this.sessionState.set(session);
+          }
+        })
+        .catch((err) => {
+          console.error('Error fetching initial session:', err);
+        });
+    } else {
+      this.initialized = Promise.resolve();
     }
 
     // Listen to authentication state updates (sign-in, sign-out, session refreshes)
-    this.supabase.auth.onAuthStateChange((_event, session) => {
+    this.supabase.auth.onAuthStateChange((event, session) => {
       // Only overwrite if we don't have an active dev mock session
       if (
         typeof localStorage !== 'undefined' &&
         !localStorage.getItem('finance_app_mock_session')
       ) {
         this.sessionState.set(session);
+      }
+
+      if (event === 'SIGNED_IN') {
+        router.navigate(['/dashboard']);
       }
     });
   }
