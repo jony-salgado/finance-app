@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from ...schemas.schemas import Transaction, TransactionCreate
 from ...db.supabase_client import supabase
+from ...core.security import get_current_user_email
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user_email)])
 
 
 @router.get("/", response_model=List[Transaction], response_model_by_alias=True)

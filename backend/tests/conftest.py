@@ -77,6 +77,15 @@ def client() -> Generator[TestClient, None, None]:
     Fixture providing a TestClient for testing the FastAPI application endpoints.
     """
     from app.main import app
+    from app.core.security import get_current_user_email
+
+    # Override the security dependency to return a whitelisted email during tests
+    app.dependency_overrides[get_current_user_email] = (
+        lambda: "jony.salgado@example.com"
+    )
 
     with TestClient(app) as test_client:
         yield test_client
+
+    # Clear dependency overrides after tests finish
+    app.dependency_overrides.clear()
