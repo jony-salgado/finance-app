@@ -1,0 +1,183 @@
+<div class="space-y-6 animate-in fade-in duration-300">
+  <!-- Date Header -->
+  <div class="flex items-center gap-2 text-sm font-semibold text-slate-500">
+    <i class="ph ph-calendar text-lg"></i>
+    <span>Semana Atual: {{ parent().formattedWeekRange() }}</span>
+  </div>
+
+  <!-- Row 1: Indicators Grid spanning full width -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    <!-- Meta Semanal Card -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-36 relative overflow-hidden">
+      <div class="flex justify-between items-center w-full z-10">
+        <span class="text-slate-500 font-medium text-sm">Meta Semanal</span>
+        @if (!parent().weeklyGoalEditing()) {
+          <button (click)="parent().startEditingGoal()" class="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-indigo-600 transition" title="Editar Meta">
+            <i class="ph ph-pencil-simple text-base"></i>
+          </button>
+        }
+      </div>
+      
+      <div class="z-10 mt-2">
+        @if (parent().weeklyGoalEditing()) {
+          <div class="flex items-center gap-2 w-full">
+            <div class="relative flex-1">
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">R$</span>
+              <input type="number" step="10" [value]="parent().weeklyGoalInput()" (input)="parent().weeklyGoalInput.set($any($event.target).value)" 
+                     class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-2 py-1.5 text-base font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            </div>
+            <button (click)="parent().confirmEditingGoal()" class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition" title="Salvar"><i class="ph ph-check"></i></button>
+            <button (click)="parent().cancelEditingGoal()" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition" title="Cancelar"><i class="ph ph-x"></i></button>
+          </div>
+        } @else {
+          <span class="text-2xl font-bold text-slate-800">{{ parent().fm(parent().weeklyGoal()) }}</span>
+        }
+      </div>
+      <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-slate-50 rounded-full opacity-50 z-0"></div>
+    </div>
+
+    <!-- Gasto Semanal (Flexivel) Card -->
+    <button type="button" (click)="parent().toggleFilter('weekly')" 
+            class="bg-white p-5 rounded-2xl shadow-sm border text-left flex flex-col justify-between h-36 relative overflow-hidden transition-all hover:border-indigo-300 w-full"
+            [class.border-indigo-400]="parent().weeklySpendingFilter() === 'weekly'"
+            [class.bg-indigo-50]="parent().weeklySpendingFilter() === 'weekly'"
+            [class.border-slate-100]="parent().weeklySpendingFilter() !== 'weekly'">
+      <div class="flex justify-between items-center w-full z-10">
+        <span class="text-slate-500 font-medium text-sm">Gasto Semanal</span>
+        <div class="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><i class="ph ph-trend-down"></i></div>
+      </div>
+      <div class="z-10 mt-2">
+        <span class="text-2xl font-bold text-slate-800">{{ parent().fm(parent().weeklyExpensesWeeklyTotal()) }}</span>
+        @if (parent().weeklySpendingFilter() === 'weekly') {
+          <span class="block text-[10px] text-indigo-500 font-bold uppercase mt-0.5">Filtrando</span>
+        }
+      </div>
+      <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-indigo-50/30 rounded-full opacity-50 z-0"></div>
+    </button>
+
+    <!-- Gastos Fixos Card -->
+    <button type="button" (click)="parent().toggleFilter('fixed')" 
+            class="bg-white p-5 rounded-2xl shadow-sm border text-left flex flex-col justify-between h-36 relative overflow-hidden transition-all hover:border-slate-300 w-full"
+            [class.border-slate-400]="parent().weeklySpendingFilter() === 'fixed'"
+            [class.bg-slate-50]="parent().weeklySpendingFilter() === 'fixed'"
+            [class.border-slate-100]="parent().weeklySpendingFilter() !== 'fixed'">
+      <div class="flex justify-between items-center w-full z-10">
+        <span class="text-slate-500 font-medium text-sm font-semibold">Gastos Fixos</span>
+        <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600"><i class="ph ph-lock"></i></div>
+      </div>
+      <div class="z-10 mt-2">
+        <span class="text-2xl font-bold text-slate-800">{{ parent().fm(parent().weeklyExpensesFixedTotal()) }}</span>
+        @if (parent().weeklySpendingFilter() === 'fixed') {
+          <span class="block text-[10px] text-slate-500 font-bold uppercase mt-0.5">Filtrando</span>
+        }
+      </div>
+      <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-slate-100/30 rounded-full opacity-50 z-0"></div>
+    </button>
+
+    <!-- Gastos Emergenciais Card -->
+    <button type="button" (click)="parent().toggleFilter('emergency')" 
+            class="bg-white p-5 rounded-2xl shadow-sm border text-left flex flex-col justify-between h-36 relative overflow-hidden transition-all hover:border-red-300 w-full"
+            [class.border-red-400]="parent().weeklySpendingFilter() === 'emergency'"
+            [class.bg-red-50]="parent().weeklySpendingFilter() === 'emergency'"
+            [class.border-slate-100]="parent().weeklySpendingFilter() !== 'emergency'">
+      <div class="flex justify-between items-center w-full z-10">
+        <span class="text-slate-500 font-medium text-sm font-semibold">Gastos Emergenciais</span>
+        <div class="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center text-red-600"><i class="ph ph-warning-octagon"></i></div>
+      </div>
+      <div class="z-10 mt-2">
+        <span class="text-2xl font-bold text-slate-800">{{ parent().fm(parent().weeklyExpensesEmergencyTotal()) }}</span>
+        @if (parent().weeklySpendingFilter() === 'emergency') {
+          <span class="block text-[10px] text-red-500 font-bold uppercase mt-0.5">Filtrando</span>
+        }
+      </div>
+      <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-red-50/30 rounded-full opacity-50 z-0"></div>
+    </button>
+
+    <!-- Saldo Restante Card -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-36 relative overflow-hidden col-span-2 sm:col-span-1">
+      <div class="flex justify-between items-center w-full z-10">
+        <span class="text-slate-500 font-medium text-sm">Saldo Restante</span>
+        <div class="w-8 h-8 rounded-full flex items-center justify-center" 
+             [class]="parent().weeklyGoal() - parent().weeklyExpensesWeeklyTotal() >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'">
+          <i [class]="parent().weeklyGoal() - parent().weeklyExpensesWeeklyTotal() >= 0 ? 'ph ph-check-circle' : 'ph ph-warning'"></i>
+        </div>
+      </div>
+      <div class="z-10 mt-2">
+        <span class="text-2xl font-bold" 
+              [class]="parent().weeklyGoal() - parent().weeklyExpensesWeeklyTotal() >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+          {{ parent().fm(parent().weeklyGoal() - parent().weeklyExpensesWeeklyTotal()) }}
+        </span>
+      </div>
+      <div class="absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-50 z-0"
+           [class]="parent().weeklyGoal() - parent().weeklyExpensesWeeklyTotal() >= 0 ? 'bg-emerald-50/30' : 'bg-rose-50/30'"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: List and Speedometer Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <!-- Left Column: Weekly Transactions List -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center justify-between w-full">
+          <span class="flex items-center gap-2">
+            <i class="ph ph-list-bullets text-slate-400 text-lg"></i> Weekly Transactions
+          </span>
+          @if (parent().weeklySpendingFilter() !== 'all') {
+            <button type="button" (click)="parent().weeklySpendingFilter.set('all')" class="text-xs text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg font-bold transition">
+              Ver Todos
+            </button>
+          }
+        </h3>
+        
+        @if (parent().displayWeeklyTransactions().length === 0) {
+          <div class="text-center py-12">
+            <i class="ph ph-list-numbers text-5xl text-slate-200 mb-3 block"></i>
+            <p class="text-slate-400 font-medium text-sm">No transactions recorded this week.</p>
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (t of parent().displayWeeklyTransactions(); track t.id) {
+              <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group" 
+                   [class.bg-indigo-50]="t.isBill" 
+                   [class.bg-opacity-30]="t.isBill" 
+                   [class.hover:bg-slate-50]="!t.isBill">
+                <div class="flex items-center gap-4">
+                  <div class="w-11 h-11 rounded-full flex items-center justify-center {{t.catColor}} shrink-0">
+                    <i [class]="t.catIcon + ' text-lg'"></i>
+                  </div>
+                  <div>
+                    <p class="font-semibold text-sm text-slate-800">{{ t.description }}</p>
+                    <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                      <span>{{ t.formattedDate }}</span>
+                      <span>•</span>
+                      <span><i class="ph ph-credit-card"></i> {{ t.accountName }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="font-bold text-sm" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
+                    {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
+                  </span>
+                  <div class="flex opacity-0 group-hover:opacity-100 transition shrink-0">
+                    @if (!t.isBill) { 
+                      <button (click)="parent().openTransactionModal(t)" class="p-1.5 text-slate-300 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-base"></i></button> 
+                    }
+                    <button (click)="parent().deleteTransaction(t.id)" class="p-1.5 text-slate-300 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-base"></i></button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Column: Speedometer Gauge -->
+    <div class="lg:col-span-1">
+      <app-card-velocimetro 
+        [goal]="parent().weeklyGoal()" 
+        [current]="parent().weeklyExpensesWeeklyTotal()">
+      </app-card-velocimetro>
+    </div>
+  </div>
+</div>

@@ -8,15 +8,26 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FinanceService } from './services/finance.service';
-import { CardResumoComponent } from './components/card-resumo/card-resumo.component';
-import { CardPizzaComponent } from './components/card-pizza/card-pizza.component';
-import { OpenFinanceButtonComponent } from './components/open-finance-button/open-finance-button.component';
+import { DashboardTabComponent } from './components/tabs/dashboard-tab.component';
+import { TransactionsTabComponent } from './components/tabs/transactions-tab.component';
+import { CardsTabComponent } from './components/tabs/cards-tab.component';
+import { AccountsTabComponent } from './components/tabs/accounts-tab.component';
+import { CategoriesTabComponent } from './components/tabs/categories-tab.component';
+import { MetaTabComponent } from './components/tabs/meta-tab.component';
 import { Transaction, Account, Category } from './models';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, CardResumoComponent, CardPizzaComponent, OpenFinanceButtonComponent],
+  imports: [
+    CommonModule,
+    DashboardTabComponent,
+    TransactionsTabComponent,
+    CardsTabComponent,
+    AccountsTabComponent,
+    CategoriesTabComponent,
+    MetaTabComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
 })
@@ -52,7 +63,7 @@ export class AppComponent implements OnInit {
   iconKeys = Object.keys(this.iconMap);
 
   // View State
-  activeTab = signal<'dashboard' | 'transactions' | 'cards' | 'accounts' | 'categories'>(
+  activeTab = signal<'dashboard' | 'transactions' | 'cards' | 'accounts' | 'categories' | 'meta'>(
     'dashboard',
   );
   currentMonthYear = signal(
@@ -64,6 +75,7 @@ export class AppComponent implements OnInit {
   categories = this.financeService.categories;
   accounts = this.financeService.accounts;
   error = this.financeService.error;
+  weeklyGoal = this.financeService.weeklyGoal;
 
   // Modals & Forms State
   transactionModalOpen = signal(false);
@@ -88,12 +100,26 @@ export class AppComponent implements OnInit {
   billError = signal('');
   syncingAccountId = signal<string | null>(null);
 
+  // Selected Card for transaction list details
+  selectedCardIdForTransactions = signal<string | null>(null);
+
+  // Weekly Goal Edit State
+  weeklyGoalEditing = signal(false);
+  weeklyGoalInput = signal<number>(500);
+
+  // Weekly Spending Filter State
+  weeklySpendingFilter = signal<'all' | 'weekly' | 'fixed' | 'emergency'>('all');
+
+  // Account/Card Filter State for Transactions Tab
+  selectedAccountFilter = signal<string>('all');
+
   menuTabs = [
     { id: 'dashboard', label: 'Home', icon: 'ph ph-house' },
     { id: 'transactions', label: 'Transactions', icon: 'ph ph-list-numbers' },
     { id: 'cards', label: 'Cards', icon: 'ph ph-credit-card' },
     { id: 'accounts', label: 'Accounts', icon: 'ph ph-bank' },
     { id: 'categories', label: 'Categories', icon: 'ph ph-tag' },
+    { id: 'meta', label: 'Meta', icon: 'ph ph-gauge' },
   ];
 
   ngOnInit() {
@@ -140,28 +166,117 @@ export class AppComponent implements OnInit {
   });
 
   displayTransactions = computed(() => {
-    return this.monthTransactions().map((t) => {
-      const isBill = t.type === 'credit_card_payment';
-      const categoryId = t.category || (t as any).category_id;
-      const accountId = isBill
-        ? t.sourceAccount || (t as any).source_account_id
-        : t.account || (t as any).account_id;
+    const filterId = this.selectedAccountFilter();
+    return this.monthTransactions()
+      .filter((t) => {
+        if (filterId === 'all') return true;
+        const isBill = t.type === 'credit_card_payment';
+        if (isBill) {
+          const srcAcc = t.sourceAccount || (t as any).source_account_id;
+          const destAcc = t.destinationAccount || (t as any).destination_account_id;
+          return srcAcc === filterId || destAcc === filterId;
+        } else {
+          const accId = t.account || (t as any).account_id;
+          const cardTag = t.tags && t.tags.find((tag: string) => tag.startsWith('estorno_card:'));
+          const estornoCardId = cardTag ? cardTag.split(':')[1] : null;
+          return accId === filterId || estornoCardId === filterId;
+        }
+      })
+      .map((t) => {
+        const isBill = t.type === 'credit_card_payment';
+        const categoryId = t.category || (t as any).category_id;
+        const accountId = isBill
+          ? t.sourceAccount || (t as any).source_account_id
+          : t.account || (t as any).account_id;
 
-      const cat = this.getCategory(categoryId, isBill);
-      const con = this.getAccount(accountId);
-      return {
-        ...t,
-        isBill,
-        absoluteAmount: Math.abs(t.amount),
-        formattedAmount: this.fm(t.amount),
-        formattedDate: this.fd(t.date),
-        catName: cat.name,
-        catColor: cat.color,
-        catIcon: cat.iconClass,
-        accountName: isBill ? `From: ${con.name}` : con.name,
-        isExpense: t.type === 'expense' || isBill,
-      };
-    });
+        const cat = this.getCategory(categoryId, isBill);
+        const con = this.getAccount(accountId);
+        return {
+          ...t,
+          isBill,
+          absoluteAmount: Math.abs(t.amount),
+          formattedAmount: this.fm(t.amount),
+          formattedDate: this.fd(t.date),
+          catName: cat.name,
+          catColor: cat.color,
+          catIcon: cat.iconClass,
+          accountName: isBill ? `From: ${con.name}` : con.name,
+          isExpense: t.type === 'expense' || isBill,
+        };
+      });
+  });
+
+  selectedCardTransactions = computed(() => {
+    const cardId = this.selectedCardIdForTransactions();
+    if (!cardId) return [];
+
+    const card = this.accounts().find((c) => c.id === cardId);
+    if (!card) return [];
+
+    const bill = this.getBillSummary(card);
+    const openingDate = bill.openingDate;
+    const closingDate = bill.closingDate;
+
+    return this.globalTransactions()
+      .filter((t) => {
+        // 1. Is it a bill payment for this card?
+        if (
+          t.type === 'credit_card_payment' &&
+          (t.destinationAccount === cardId || (t as any).destination_account_id === cardId)
+        ) {
+          return t.referenceMonth === this.currentMonthYear();
+        }
+
+        // 2. Is it a refund (estorno) for this card?
+        const hasEstornoTag = t.tags && t.tags.includes('estorno');
+        const cardTag = t.tags && t.tags.find((tag: string) => tag.startsWith('estorno_card:'));
+        const targetCardId = cardTag ? cardTag.split(':')[1] : t.account || (t as any).account_id;
+        if (hasEstornoTag && targetCardId === cardId) {
+          const dateT = new Date(t.date + 'T12:00:00');
+          return (
+            (dateT >= openingDate && dateT < closingDate) ||
+            t.referenceMonth === this.currentMonthYear()
+          );
+        }
+
+        // 3. Is it a normal card expense/income in the bill period?
+        if (
+          (t.account === cardId || (t as any).account_id === cardId) &&
+          t.type !== 'credit_card_payment'
+        ) {
+          const dateT = new Date(t.date + 'T12:00:00');
+          return dateT >= openingDate && dateT < closingDate;
+        }
+
+        return false;
+      })
+      .map((t) => {
+        const isBill = t.type === 'credit_card_payment';
+        const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+        const categoryId = t.category || (t as any).category_id;
+        const accountId = isBill
+          ? t.sourceAccount || (t as any).source_account_id
+          : t.account || (t as any).account_id;
+
+        const cat = this.getCategory(categoryId, isBill);
+        const con = this.getAccount(accountId);
+        const isExpense = t.type === 'expense' && !hasEstornoTag && !isBill;
+
+        return {
+          ...t,
+          isBill,
+          isEstorno: hasEstornoTag,
+          absoluteAmount: Math.abs(t.amount),
+          formattedAmount: this.fm(t.amount),
+          formattedDate: this.fd(t.date),
+          catName: hasEstornoTag ? 'Refund' : cat.name,
+          catColor: hasEstornoTag ? 'bg-emerald-100 text-emerald-600' : cat.color,
+          catIcon: hasEstornoTag ? 'ph ph-arrow-counter-clockwise' : cat.iconClass,
+          accountName: isBill ? `From: ${con.name}` : con.name,
+          isExpense,
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
 
   dash = computed(() => {
@@ -204,17 +319,20 @@ export class AppComponent implements OnInit {
     let monthExpenses = 0;
     const catMap: Record<string, number> = {};
     const accountMap: Record<string, number> = {};
+    const groupMap: Record<string, number> = {};
 
     tM.forEach((t) => {
       if (t.type === 'credit_card_payment') return;
-      const catId = t.category || (t as any).category_id;
+      const catId = t.category || (t as any).category_id || 'unknown';
       const accId = t.account || (t as any).account_id;
 
       if (t.type === 'income') monthIncomes += t.amount;
       else if (t.type === 'expense') {
         monthExpenses += t.amount;
-        if (catId) catMap[catId] = (catMap[catId] || 0) + t.amount;
+        catMap[catId] = (catMap[catId] || 0) + t.amount;
         if (accId) accountMap[accId] = (accountMap[accId] || 0) + t.amount;
+        const grp = t.spendingGroup || 'weekly';
+        groupMap[grp] = (groupMap[grp] || 0) + t.amount;
       }
     });
 
@@ -245,12 +363,32 @@ export class AppComponent implements OnInit {
       cardColor: accountColors[i % accountColors.length],
     }));
 
+    const groupMetadata: Record<string, { name: string; hexColor: string }> = {
+      weekly: { name: 'Weekly', hexColor: '#4f46e5' },
+      fixed: { name: 'Fixed', hexColor: '#4b5563' },
+      emergency: { name: 'Emergency', hexColor: '#dc2626' },
+    };
+
+    const expensesByGroup = Object.keys(groupMap)
+      .map((grp) => {
+        const meta = groupMetadata[grp] || { name: grp, hexColor: '#cbd5e1' };
+        return {
+          id: grp,
+          name: meta.name,
+          amount: groupMap[grp],
+          percentage: (groupMap[grp] / (monthExpenses || 1)) * 100,
+          hexColor: meta.hexColor,
+        };
+      })
+      .sort((a, b) => b.amount - a.amount);
+
     return {
       accountBalance,
       monthIncomes,
       monthExpenses,
       expensesByCategory: formatChart(catMap, cats),
       expensesByAccount: formatChart(accountMap, accountsWithColor),
+      expensesByGroup,
       displayAccountBalances: cs
         .filter((c) => c.type === 'checking' || c.type === 'investment')
         .map((c) => ({
@@ -268,8 +406,103 @@ export class AppComponent implements OnInit {
       cards: 'Cards',
       accounts: 'Accounts',
       categories: 'Categories',
+      meta: 'Meta Semanal',
     };
     return map[this.activeTab()] || 'App';
+  });
+
+  currentWeekRange = computed(() => {
+    const today = new Date();
+    const day = today.getDay();
+    const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
+
+    const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    return { start: startOfWeek, end: endOfWeek };
+  });
+
+  formattedWeekRange = computed(() => {
+    const range = this.currentWeekRange();
+    const startStr = `${range.start.getDate().toString().padStart(2, '0')}/${(range.start.getMonth() + 1).toString().padStart(2, '0')}`;
+    const endStr = `${range.end.getDate().toString().padStart(2, '0')}/${(range.end.getMonth() + 1).toString().padStart(2, '0')}`;
+    return `${startStr} a ${endStr}`;
+  });
+
+  weeklyTransactions = computed(() => {
+    const range = this.currentWeekRange();
+    return this.globalTransactions()
+      .filter((t) => {
+        if (!t.date) return false;
+        // Only include actual expenses in the weekly budget (Meta) tab calculations and list
+        if (t.type !== 'expense') return false;
+        const tDate = new Date(t.date + 'T00:00:00');
+        return tDate >= range.start && tDate <= range.end;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
+
+  displayWeeklyTransactions = computed(() => {
+    const filter = this.weeklySpendingFilter();
+    let txs = this.weeklyTransactions();
+
+    if (filter !== 'all') {
+      txs = txs.filter((t) => {
+        const group = t.spendingGroup || 'weekly';
+        return group === filter;
+      });
+    }
+
+    return txs.map((t) => {
+      const isBill = t.type === 'credit_card_payment';
+      const categoryId = t.category || (t as any).category_id;
+      const accountId = isBill
+        ? t.sourceAccount || (t as any).source_account_id
+        : t.account || (t as any).account_id;
+
+      const cat = this.getCategory(categoryId, isBill);
+      const con = this.getAccount(accountId);
+      return {
+        ...t,
+        isBill,
+        absoluteAmount: Math.abs(t.amount),
+        formattedAmount: this.fm(t.amount),
+        formattedDate: this.fd(t.date),
+        catName: cat.name,
+        catColor: cat.color,
+        catIcon: cat.iconClass,
+        accountName: isBill ? `From: ${con.name}` : con.name,
+        isExpense: t.type === 'expense' || isBill,
+      };
+    });
+  });
+
+  weeklyExpensesTotal = computed(() => {
+    return this.weeklyTransactions()
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  });
+
+  weeklyExpensesWeeklyTotal = computed(() => {
+    return this.weeklyTransactions()
+      .filter((t) => t.type === 'expense' && (t.spendingGroup === 'weekly' || !t.spendingGroup))
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  });
+
+  weeklyExpensesFixedTotal = computed(() => {
+    return this.weeklyTransactions()
+      .filter((t) => t.type === 'expense' && t.spendingGroup === 'fixed')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  });
+
+  weeklyExpensesEmergencyTotal = computed(() => {
+    return this.weeklyTransactions()
+      .filter((t) => t.type === 'expense' && t.spendingGroup === 'emergency')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
   });
 
   currentMonthName = computed(() => {
@@ -321,9 +554,35 @@ export class AppComponent implements OnInit {
   chartCards = computed(() => [
     { title: 'Expenses by Category (Month)', data: this.dash().expensesByCategory },
     { title: 'Expenses by Account/Card (Month)', data: this.dash().expensesByAccount },
+    { title: 'Expenses by Group (Month)', data: this.dash().expensesByGroup },
   ]);
 
   // --- ACTIONS ---
+
+  startEditingGoal() {
+    this.weeklyGoalInput.set(this.weeklyGoal());
+    this.weeklyGoalEditing.set(true);
+  }
+
+  cancelEditingGoal() {
+    this.weeklyGoalEditing.set(false);
+  }
+
+  confirmEditingGoal() {
+    const val = parseFloat(this.weeklyGoalInput().toString());
+    if (!isNaN(val) && val >= 0) {
+      this.financeService.saveWeeklyGoal(val);
+    }
+    this.weeklyGoalEditing.set(false);
+  }
+
+  toggleFilter(filter: 'weekly' | 'fixed' | 'emergency') {
+    if (this.weeklySpendingFilter() === filter) {
+      this.weeklySpendingFilter.set('all');
+    } else {
+      this.weeklySpendingFilter.set(filter);
+    }
+  }
 
   fm(value: number) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
@@ -353,7 +612,7 @@ export class AppComponent implements OnInit {
       };
     const cat = this.categories().find((c) => c.id === id);
     return cat
-      ? { ...cat, iconClass: this.iconMap[cat.iconName] || 'ph ph-question' }
+      ? { ...cat, iconClass: this.iconMap[cat.iconName.toLowerCase()] || 'ph ph-question' }
       : { name: 'Unknown', color: 'bg-gray-100 text-gray-500', iconClass: 'ph ph-question' };
   }
 
@@ -363,7 +622,33 @@ export class AppComponent implements OnInit {
 
   openTransactionModal(t: any = null) {
     if (t) {
-      this.transactionForm.set({ ...t });
+      const hasEstorno = !!(t.tags && t.tags.includes('estorno'));
+      const estornoCardTag =
+        t.tags && t.tags.find((tag: string) => tag.startsWith('estorno_card:'));
+      const estornoCardId = estornoCardTag
+        ? estornoCardTag.split(':')[1]
+        : hasEstorno
+          ? t.account || t.account_id
+          : '';
+
+      const isBillPayment = t.type === 'credit_card_payment';
+      const billPaymentCardId = isBillPayment
+        ? t.destinationAccount || t.destination_account_id
+        : '';
+
+      this.transactionForm.set({
+        ...t,
+        category: t.category || t.category_id || '',
+        account:
+          t.account ||
+          t.account_id ||
+          (isBillPayment ? t.sourceAccount || t.source_account_id : ''),
+        spendingGroup: t.spendingGroup || 'weekly',
+        isEstorno: hasEstorno,
+        estornoCardId: estornoCardId || '',
+        isBillPayment: isBillPayment,
+        billPaymentCardId: billPaymentCardId || '',
+      });
     } else {
       const cat = this.categories().find((c) => c.type === 'expense');
       const con = this.accounts()[0];
@@ -374,6 +659,11 @@ export class AppComponent implements OnInit {
         category: cat?.id || '',
         account: con?.id || '',
         date: new Date().toISOString().split('T')[0],
+        spendingGroup: 'weekly',
+        isEstorno: false,
+        estornoCardId: '',
+        isBillPayment: false,
+        billPaymentCardId: '',
       });
     }
     this.transactionModalOpen.set(true);
@@ -391,13 +681,52 @@ export class AppComponent implements OnInit {
     this.transactionForm.set({ ...this.transactionForm(), type, category: cat?.id || '' });
   }
 
-  saveTransaction() {
-    const form = this.transactionForm();
+  async saveTransaction() {
+    const form = { ...this.transactionForm() };
     form.amount = parseFloat(form.amount.toString().replace(',', '.'));
-    if (!form.id) {
-      this.financeService.addTransaction(form);
+
+    // Handle Estorno
+    if (form.isEstorno) {
+      const otherTags = (form.tags || []).filter(
+        (tag: string) => tag !== 'estorno' && !tag.startsWith('estorno_card:'),
+      );
+      form.tags = [...otherTags, 'estorno'];
+      if (form.estornoCardId) {
+        form.tags.push(`estorno_card:${form.estornoCardId}`);
+      }
     } else {
-      this.financeService.updateTransaction(form);
+      if (form.tags) {
+        form.tags = form.tags.filter(
+          (tag: string) => tag !== 'estorno' && !tag.startsWith('estorno_card:'),
+        );
+      }
+    }
+
+    // Handle Bill Payment
+    if (form.isBillPayment) {
+      form.type = 'credit_card_payment';
+      form.sourceAccount = form.account;
+      form.destinationAccount = form.billPaymentCardId;
+      form.category = '';
+      form.referenceMonth = String(form.date).substring(0, 7);
+    } else {
+      if (form.type === 'credit_card_payment') {
+        form.type = 'expense';
+      }
+      form.sourceAccount = undefined;
+      form.destinationAccount = undefined;
+    }
+
+    // Clean up temporary UI fields
+    delete form.isEstorno;
+    delete form.estornoCardId;
+    delete form.isBillPayment;
+    delete form.billPaymentCardId;
+
+    if (!form.id) {
+      await this.financeService.addTransaction(form);
+    } else {
+      await this.financeService.updateTransaction(form);
     }
     this.closeTransactionModal();
   }
@@ -501,17 +830,40 @@ export class AppComponent implements OnInit {
     let totalExpenses = 0;
     let totalIncomes = 0;
     let paidAmount = 0;
+    let estornosAmount = 0;
 
     this.globalTransactions().forEach((t) => {
+      // 1. Check if it's a refund (estorno) for this card
+      const hasEstornoTag = t.tags && t.tags.includes('estorno');
+      const cardTag = t.tags && t.tags.find((tag: string) => tag.startsWith('estorno_card:'));
+      const targetCardId = cardTag ? cardTag.split(':')[1] : t.account || (t as any).account_id;
+      const isEstornoForThisCard = hasEstornoTag && targetCardId === card.id;
+
+      if (isEstornoForThisCard) {
+        const dateT = new Date(t.date + 'T12:00:00');
+        if (
+          (dateT >= openingDate && dateT < closingDate) ||
+          t.referenceMonth === this.currentMonthYear()
+        ) {
+          estornosAmount += Math.abs(t.amount);
+          // A refund reduces the bill, so treat it as income/credit
+          totalIncomes += Math.abs(t.amount);
+        }
+        return;
+      }
+
       if (
         t.type === 'credit_card_payment' &&
-        t.destinationAccount === card.id &&
+        (t.destinationAccount === card.id || (t as any).destination_account_id === card.id) &&
         t.referenceMonth === this.currentMonthYear()
       ) {
         paidAmount += t.amount;
         return;
       }
-      if (t.account === card.id && t.type !== 'credit_card_payment') {
+      if (
+        (t.account === card.id || (t as any).account_id === card.id) &&
+        t.type !== 'credit_card_payment'
+      ) {
         const dateT = new Date(t.date + 'T12:00:00');
         if (dateT >= openingDate && dateT < closingDate) {
           if (t.type === 'expense') totalExpenses += t.amount;
@@ -530,7 +882,7 @@ export class AppComponent implements OnInit {
       card.initialBalance !== undefined &&
       card.initialBalance !== null
     ) {
-      billAmount = card.initialBalance;
+      billAmount = Math.max(0, card.initialBalance - estornosAmount);
     }
 
     const today = new Date();
@@ -540,6 +892,10 @@ export class AppComponent implements OnInit {
     if (billAmount === 0 && paidAmount === 0) status = 'zeroed';
 
     return { openingDate, closingDate, dueDate, billAmount, paidAmount, status };
+  }
+
+  toggleCardTransactions(id: string) {
+    this.selectedCardIdForTransactions.set(this.selectedCardIdForTransactions() === id ? null : id);
   }
 
   openPayBillModal(card: any, bill: any) {
@@ -567,10 +923,12 @@ export class AppComponent implements OnInit {
       return;
     }
 
+    const amountToPay = Math.max(0, bill.billAmount - bill.paidAmount);
+
     const debitAccount = this.dash().displayAccountBalances.find(
       (c: any) => c.id === sourceAccount,
     );
-    if (debitAccount && bill.billAmount > (debitAccount as any).balance!) {
+    if (debitAccount && amountToPay > (debitAccount as any).balance!) {
       this.billError.set(
         `Insufficient balance. You have only ${this.fm((debitAccount as any).balance!)} in this account.`,
       );
@@ -580,8 +938,8 @@ export class AppComponent implements OnInit {
     const billTransaction = {
       type: 'credit_card_payment',
       description: `Bill Payment ${card.name}`,
-      amount: bill.billAmount,
-      category: 'others',
+      amount: amountToPay,
+      category: '',
       sourceAccount: sourceAccount,
       destinationAccount: card.id,
       date: new Date().toISOString().split('T')[0],

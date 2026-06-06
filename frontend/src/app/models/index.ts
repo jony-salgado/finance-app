@@ -9,6 +9,8 @@ export interface Transaction {
   destinationAccount?: string;
   date: string;
   referenceMonth?: string;
+  spendingGroup?: 'weekly' | 'fixed' | 'emergency';
+  tags?: string[];
 }
 
 export interface Account {

@@ -59,7 +59,9 @@ def update_transaction(transaction_id: str, transaction: TransactionCreate) -> d
     Update an existing transaction by its ID.
     """
     try:
-        db_data = transaction.model_dump(mode="json", exclude_none=True, by_alias=False)
+        db_data = transaction.model_dump(
+            mode="json", exclude_none=False, by_alias=False
+        )
         # Convert empty strings to None for UUID fields
         for field in [
             "category_id",

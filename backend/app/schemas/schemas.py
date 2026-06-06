@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import date
 
 
@@ -13,6 +13,8 @@ class TransactionBase(BaseModel):
     destination_account_id: Optional[str] = Field(None, alias="destinationAccount")
     date: date
     reference_month: Optional[str] = Field(None, alias="referenceMonth")
+    spending_group: Optional[str] = Field("weekly", alias="spendingGroup")
+    tags: Optional[List[str]] = Field(default=None)
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 

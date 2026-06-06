@@ -5,6 +5,15 @@ from ...db.supabase_client import supabase
 from ...core.constants import *
 
 
+def map_pluggy_category(p_category: Optional[str]) -> str:
+    """
+    Maps a Pluggy category name to a local user category name.
+    """
+    if not p_category:
+        return "Outros"
+    return PLUGGY_CATEGORY_MAP.get(p_category.lower(), p_category)
+
+
 def map_pluggy_account_type(p_account) -> str:
     """
     Map Pluggy types to our local schema types ('checking', 'credit_card', 'investment')
@@ -238,7 +247,9 @@ def prepare_new_account_data(
     return account_data
 
 
-def map_pluggy_txn_dict_to_db(p_txn: dict, internal_account_id: str) -> dict:
+def map_pluggy_txn_dict_to_db(
+    p_txn: dict, internal_account_id: str, category_id: Optional[str] = None
+) -> dict:
     """
     Maps a Pluggy transaction dictionary (from REST API) to the local database format
     """
@@ -250,10 +261,13 @@ def map_pluggy_txn_dict_to_db(p_txn: dict, internal_account_id: str) -> dict:
         "date": str(p_txn["date"])[:10],
         "account_id": internal_account_id,
         "provider_transaction_id": p_txn["id"],
+        "category_id": category_id,
     }
 
 
-def map_pluggy_txn_webhook_to_db(txn, internal_account_id: str) -> dict:
+def map_pluggy_txn_webhook_to_db(
+    txn, internal_account_id: str, category_id: Optional[str] = None
+) -> dict:
     """
     Maps a Pluggy webhook transaction object (Pydantic model) to the local database format
     """
@@ -265,6 +279,7 @@ def map_pluggy_txn_webhook_to_db(txn, internal_account_id: str) -> dict:
         "date": txn.date.isoformat(),
         "account_id": internal_account_id,
         "provider_transaction_id": txn.id,
+        "category_id": category_id,
     }
 
 
@@ -343,6 +358,16 @@ def sync_single_account_transactions(
     results = fetch_pluggy_transactions(p_account_id, from_date, api_key)
     transactions_added = 0
 
+    category_map = {}
+    try:
+        categories_res = supabase.table("categories").select("id, name").execute()
+        categories = categories_res.data or []
+        category_map = {
+            c["name"].lower(): c["id"] for c in categories if "name" in c and "id" in c
+        }
+    except Exception:
+        pass
+
     for p_txn in results:
         # Check if transaction already exists by provider_transaction_id
         txn_exist = (
@@ -353,7 +378,15 @@ def sync_single_account_transactions(
         )
 
         if not txn_exist.data:
-            txn_data = map_pluggy_txn_dict_to_db(p_txn, internal_account_id)
+            p_category = p_txn.get("category")
+            category_id = None
+            if p_category:
+                mapped_name = map_pluggy_category(p_category)
+                category_id = category_map.get(mapped_name.lower())
+
+            txn_data = map_pluggy_txn_dict_to_db(
+                p_txn, internal_account_id, category_id
+            )
             # Upsert transaction
             supabase.table("transactions").upsert(
                 txn_data, on_conflict="provider_transaction_id"
@@ -379,7 +412,24 @@ def process_webhook_transaction(txn) -> bool:
         return False
 
     internal_account_id = res.data[0]["id"]
-    txn_data = map_pluggy_txn_webhook_to_db(txn, internal_account_id)
+
+    category_map = {}
+    try:
+        categories_res = supabase.table("categories").select("id, name").execute()
+        categories = categories_res.data or []
+        category_map = {
+            c["name"].lower(): c["id"] for c in categories if "name" in c and "id" in c
+        }
+    except Exception:
+        pass
+
+    p_category = getattr(txn, "category", None)
+    category_id = None
+    if p_category:
+        mapped_name = map_pluggy_category(p_category)
+        category_id = category_map.get(mapped_name.lower())
+
+    txn_data = map_pluggy_txn_webhook_to_db(txn, internal_account_id, category_id)
 
     supabase.table("transactions").upsert(
         txn_data, on_conflict="provider_transaction_id"

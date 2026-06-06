@@ -57,267 +57,32 @@
 
     <!-- DASHBOARD TAB -->
     @if (activeTab() === 'dashboard') {
-      <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          @for (card of summaryCards(); track card.title) {
-            <app-card-resumo 
-              [title]="card.title" 
-              [amount]="card.amount" 
-              [iconClass]="card.iconClass" 
-              [iconBg]="card.bgIcon" 
-              [isHighlighted]="card.highlight" 
-              [tooltip]="card.tooltip">
-            </app-card-resumo>
-          }
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Balance by Account -->
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full min-h-[200px] md:col-span-2">
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-2">
-                <i class="ph ph-bank text-xl text-slate-400"></i>
-                <h3 class="text-slate-700 font-bold">Balance by Account</h3>
-              </div>
-              <app-open-finance-button></app-open-finance-button>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
-              @for (accEx of dash().displayAccountBalances; track accEx.id) {
-                <div class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-100 transition-colors">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-white shadow-sm text-indigo-600 flex items-center justify-center"><i class="ph ph-bank"></i></div>
-                    <span class="font-semibold text-slate-700">{{ accEx.name }}</span>
-                  </div>
-                  <span class="font-bold text-lg" [class.text-red-600]="accEx.balance < 0" [class.text-slate-800]="accEx.balance >= 0">{{ accEx.formattedBalance }}</span>
-                </div>
-              }
-              @if (dash().displayAccountBalances.length === 0) { <p class="text-slate-400 text-sm py-4 col-span-full text-center">No accounts registered.</p> }
-            </div>
-          </div>
-
-          <!-- Charts -->
-          @for (chart of chartCards(); track chart.title) {
-            <app-card-pizza 
-              [title]="chart.title" 
-              [data]="chart.data">
-            </app-card-pizza>
-          }
-        </div>
-      </div>
+      <app-dashboard-tab [parent]="this"></app-dashboard-tab>
     }
 
     <!-- TRANSACTIONS TAB -->
     @if (activeTab() === 'transactions') {
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
-        @if (displayTransactions().length === 0) {
-          <div class="text-center py-12"><i class="ph ph-list-numbers text-5xl text-slate-300 mb-4 block"></i><p class="text-slate-500 font-medium">No transactions found this month.</p></div>
-        } @else {
-          <div class="space-y-3">
-            @for (t of displayTransactions(); track t.id) {
-              <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 group" 
-                   [class.bg-indigo-50]="t.isBill" 
-                   [class.bg-opacity-30]="t.isBill" 
-                   [class.hover:bg-slate-50]="!t.isBill">
-                <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-full flex items-center justify-center {{t.catColor}}">
-                    <i [class]="t.catIcon + ' text-xl'"></i>
-                  </div>
-                  <div>
-                    <p class="font-semibold text-slate-800">{{ t.description }}</p>
-                    <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                      <span>{{ t.formattedDate }}</span><span>•</span><span><i class="ph ph-credit-card"></i> {{ t.accountName }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center gap-3">
-                  <span class="font-bold" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
-                    {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
-                  </span>
-                  <div class="flex md:opacity-0 group-hover:opacity-100 transition">
-                    @if (!t.isBill) { <button (click)="openTransactionModal(t)" class="p-2 text-slate-300 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button> }
-                    <button (click)="deleteTransaction(t.id)" class="p-2 text-slate-300 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
+      <app-transactions-tab [parent]="this"></app-transactions-tab>
     }
 
     <!-- CARDS TAB -->
     @if (activeTab() === 'cards') {
-      <div class="space-y-6 animate-in fade-in duration-300">
-        <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <h2 class="font-bold text-slate-800">My Cards</h2>
-          <button (click)="openAccountForm(true)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ New Card</button>
-        </div>
-        @if (displayCards().length === 0) { <p class="text-center text-slate-500 py-10">No cards registered.</p> }
-        
-        <!-- New/Edit Card Form -->
-        @if (accountFormOpen() && accountForm()?.type === 'credit_card') {
-          <form (submit)="$event.preventDefault(); saveAccount()" class="bg-white p-6 rounded-2xl border border-slate-200 mb-6 space-y-4 shadow-sm animate-in slide-in-from-top-4">
-            <h3 class="font-bold text-slate-700 mb-4">{{ accountForm()?.id ? 'Edit Card' : 'New Card' }}</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Card Name</label><input type="text" required [value]="accountForm()?.name" (input)="updateAccountForm('name', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Last Digits (4 digits)</label><input type="text" maxlength="4" required [value]="accountForm()?.cardLastDigits || ''" (input)="updateAccountForm('cardLastDigits', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" placeholder="1234" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Closing Day</label><input type="number" min="1" max="31" required [value]="accountForm()?.closingDay || 1" (input)="updateAccountForm('closingDay', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Due Day</label><input type="number" min="1" max="31" required [value]="accountForm()?.dueDay || 10" (input)="updateAccountForm('dueDay', $any($event.target).value)" class="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-2">Card Color</label>
-              <div class="flex gap-2 flex-wrap">
-                @for (color of cardColors; track color) {
-                  <button type="button" (click)="updateAccountForm('cardColor', color)" 
-                          class="w-8 h-8 rounded-full shadow-sm"
-                          [class]="color.startsWith('#') ? '' : color"
-                          [style.backgroundColor]="color.startsWith('#') ? color : ''"
-                          [class.ring-2]="accountForm()?.cardColor === color" [class.ring-offset-2]="accountForm()?.cardColor === color" [class.ring-indigo-400]="accountForm()?.cardColor === color"></button>
-                }
-              </div>
-            </div>
-            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="closeAccountForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save</button></div>
-          </form>
-        }
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          @for (c of displayCards(); track c.id) {
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden group">
-              <div [class]="c.cardColor?.startsWith('#') ? '' : (c.cardColor || 'bg-slate-800')"
-                   [style.backgroundColor]="c.cardColor?.startsWith('#') ? c.cardColor : ''"
-                   class="p-6 text-white relative">
-                <div class="flex justify-between items-start mb-8">
-                  <div class="w-10 h-8 bg-white/20 rounded flex items-center justify-center backdrop-blur-sm"><div class="w-6 h-4 bg-amber-200/50 rounded-sm"></div></div>
-                  <div class="flex gap-2 relative z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                     @if (c.providerId === 'pluggy') {
-                       <button (click)="refreshAccount(c)" [disabled]="syncingAccountId() === c.id" class="p-1 hover:bg-white/20 rounded disabled:opacity-50" title="Atualizar fatura e transações">
-                         <i class="ph ph-arrow-clockwise" [class.animate-spin]="syncingAccountId() === c.id"></i>
-                       </button>
-                     }
-                     <button (click)="openAccountForm(true, c)" class="p-1 hover:bg-white/20 rounded"><i class="ph ph-pencil-simple"></i></button>
-                     <button (click)="deleteAccount(c.id)" class="p-1 hover:bg-white/20 rounded text-red-200"><i class="ph ph-trash"></i></button>
-                  </div>
-                </div>
-                <p class="font-medium text-lg tracking-widest opacity-90 mb-1">•••• •••• •••• {{ c.cardLastDigits || '1234' }}</p>
-                <div class="flex justify-between items-end"><p class="font-semibold text-xl">{{ c.name }}</p></div>
-                <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-white rounded-full opacity-10"></div>
-              </div>
-              <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                  <div><p class="text-sm text-slate-500 font-medium mb-1">Bill Amount</p><p class="text-3xl font-bold text-slate-800">{{ c.formattedBillAmount }}</p></div>
-                  <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border" 
-                        [class.bg-blue-100]="c.bill.status === 'open'" [class.text-blue-700]="c.bill.status === 'open'" [class.border-blue-200]="c.bill.status === 'open'"
-                        [class.bg-amber-100]="c.bill.status === 'closed'" [class.text-amber-700]="c.bill.status === 'closed'" [class.border-amber-200]="c.bill.status === 'closed'"
-                        [class.bg-green-100]="c.bill.status === 'paid'" [class.text-green-700]="c.bill.status === 'paid'" [class.border-green-200]="c.bill.status === 'paid'"
-                        [class.bg-slate-100]="c.bill.status === 'zeroed'" [class.text-slate-600]="c.bill.status === 'zeroed'" [class.border-slate-200]="c.bill.status === 'zeroed'">
-                    {{ c.bill.status }}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between text-sm text-slate-600 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div class="flex flex-col gap-1"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Period</span><span class="font-medium">{{ c.formattedOpeningDate }} to {{ c.formattedClosingDate }}</span></div>
-                  <div class="h-8 w-px bg-slate-200"></div>
-                  <div class="flex flex-col gap-1 items-end"><span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Due Date</span><span class="font-medium text-slate-800">{{ c.formattedDueDate }}</span></div>
-                </div>
-                @if (c.bill.status !== 'paid' && c.bill.billAmount > 0) {
-                  <button (click)="openPayBillModal(c, c.bill)" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-md">Pay Bill</button>
-                }
-                @if (c.bill.status === 'paid') {
-                  <div class="w-full py-3 bg-green-50 text-green-700 font-bold rounded-xl flex items-center justify-center gap-2 border border-green-100"><i class="ph ph-check-circle text-xl"></i> Bill Paid ({{ c.formattedPaidAmount }})</div>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      </div>
+      <app-cards-tab [parent]="this"></app-cards-tab>
     }
 
     <!-- ACCOUNTS TAB -->
     @if (activeTab() === 'accounts') {
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-lg font-bold text-slate-800">Checking Accounts</h2>
-          <button (click)="openAccountForm(false)" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ New Account</button>
-        </div>
-
-        <!-- New/Edit Account Form -->
-        @if (accountFormOpen() && (accountForm()?.type === 'checking' || accountForm()?.type === 'investment')) {
-          <form (submit)="$event.preventDefault(); saveAccount()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Account Name</label><input type="text" required [value]="accountForm()?.name" (input)="updateAccountForm('name', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Initial Balance</label>
-                <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">R$</span><input type="number" step="0.01" [value]="accountForm()?.initialBalance || 0" (input)="updateAccountForm('initialBalance', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100" /></div>
-              </div>
-            </div>
-            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="closeAccountForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save</button></div>
-          </form>
-        }
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          @for (acc of debitAccounts(); track acc.id) {
-            <div class="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50 group">
-              <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><i class="ph ph-bank text-lg"></i></div>
-                <p class="font-semibold text-slate-800">{{ acc.name }}</p>
-              </div>
-              <div class="flex gap-2 md:opacity-0 group-hover:opacity-100 transition">
-                @if (acc.providerId === 'pluggy') {
-                  <button (click)="refreshAccount(acc)" [disabled]="syncingAccountId() === acc.id" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg disabled:opacity-50" title="Atualizar saldo e transações">
-                    <i class="ph ph-arrow-clockwise text-lg" [class.animate-spin]="syncingAccountId() === acc.id"></i>
-                  </button>
-                }
-                <button (click)="openAccountForm(false, acc)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
-                <button (click)="deleteAccount(acc.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
+      <app-accounts-tab [parent]="this"></app-accounts-tab>
     }
 
     <!-- CATEGORIES TAB -->
     @if (activeTab() === 'categories') {
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-lg font-bold text-slate-800">Manage Categories</h2>
-          <button (click)="openCategoryForm()" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ New Category</button>
-        </div>
+      <app-categories-tab [parent]="this"></app-categories-tab>
+    }
 
-        @if (categoryFormOpen()) {
-          <form (submit)="$event.preventDefault(); saveCategory()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Category Name</label><input type="text" required [value]="categoryForm()?.name || ''" (input)="updateCategoryForm('name', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
-              <div><label class="block text-xs font-semibold text-slate-500 mb-1">Type</label><select [value]="categoryForm()?.type || 'expense'" (change)="updateCategoryForm('type', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none"><option value="expense">Expense</option><option value="income">Income</option></select></div>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-2">Color</label>
-              <div class="flex gap-2 flex-wrap">
-                @for (c of availableColors; track c) { <button type="button" (click)="updateCategoryForm('color', c)" class="w-8 h-8 rounded-full {{c}}" [class.ring-2]="categoryForm()?.color === c" [class.ring-offset-2]="categoryForm()?.color === c" [class.ring-slate-400]="categoryForm()?.color === c"></button> }
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 mb-2">Icon</label>
-              <div class="flex gap-2 flex-wrap">
-                @for (key of iconKeys; track key) { <button type="button" (click)="updateCategoryForm('iconName', key)" class="p-2 rounded-lg border text-xl" [class]="categoryForm()?.iconName === key ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'"><i [class]="iconMap[key]"></i></button> }
-              </div>
-            </div>
-            <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="closeCategoryForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save</button></div>
-          </form>
-        }
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          @for (c of categories(); track c.id) {
-            <div class="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 group">
-              <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center {{c.color}}"><i [class]="iconMap[c.iconName] || 'ph ph-question'"></i></div><div><p class="font-semibold text-slate-800">{{c.name}}</p><p class="text-xs text-slate-400 capitalize">{{c.type}}</p></div></div>
-              <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                <button (click)="openCategoryForm(c)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
-                <button (click)="deleteCategory(c.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
+    <!-- META TAB -->
+    @if (activeTab() === 'meta') {
+      <app-meta-tab [parent]="this"></app-meta-tab>
     }
 
   </main>
@@ -352,22 +117,98 @@
             <input type="text" required [value]="transactionForm().description" (input)="updateForm('description', $any($event.target).value)"
                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100" />
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid gap-4" [class.grid-cols-2]="!transactionForm().isBillPayment" [class.grid-cols-1]="transactionForm().isBillPayment">
+            @if (!transactionForm().isBillPayment) {
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Category</label>
+                <select required [value]="transactionForm().category" (change)="updateForm('category', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                  <option value="" disabled>Select...</option>
+                  @for (c of categories(); track c.id) { @if (c.type === transactionForm().type) { <option [value]="c.id">{{c.name}}</option> } }
+                </select>
+              </div>
+            }
             <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Category</label>
-              <select required [value]="transactionForm().category" (change)="updateForm('category', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                <option value="" disabled>Select...</option>
-                @for (c of categories(); track c.id) { @if (c.type === transactionForm().type) { <option [value]="c.id">{{c.name}}</option> } }
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Account/Card</label>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                {{ transactionForm().isBillPayment ? 'Origin Account (Checking)' : 'Account/Card' }}
+              </label>
               <select required [value]="transactionForm().account" (change)="updateForm('account', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
                 <option value="" disabled>Select...</option>
-                @for (c of accounts(); track c.id) { <option [value]="c.id">{{c.name}}</option> }
+                @for (c of (transactionForm().isBillPayment ? debitAccounts() : accounts()); track c.id) { <option [value]="c.id">{{c.name}}</option> }
               </select>
             </div>
           </div>
+
+          <!-- Options Checkboxes -->
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+            <!-- Refund (Estorno) Checkbox -->
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" [checked]="transactionForm().isEstorno" (change)="updateForm('isEstorno', $any($event.target).checked)" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 mt-0.5" />
+              <div class="flex flex-col">
+                <span class="text-sm font-semibold text-slate-700">Consider as Credit Card Refund (Estorno)</span>
+                <span class="text-xs text-slate-500">Deducts the transaction value from the card's invoice</span>
+              </div>
+            </label>
+
+            <!-- Paid Card Selector (if Estorno is checked) -->
+            @if (transactionForm().isEstorno) {
+              <div class="pl-7 pt-1 animate-in slide-in-from-top-2">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Target Credit Card</label>
+                <select required [value]="transactionForm().estornoCardId" (change)="updateForm('estornoCardId', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-medium">
+                  <option value="" disabled>Select Card...</option>
+                  @for (card of creditCards(); track card.id) {
+                    <option [value]="card.id">{{card.name}}</option>
+                  }
+                </select>
+              </div>
+            }
+
+            <!-- Invoice Payment Checkbox (only if type is expense) -->
+            @if (transactionForm().type === 'expense') {
+              <label class="flex items-start gap-3 cursor-pointer pt-2 border-t border-slate-200">
+                <input type="checkbox" [checked]="transactionForm().isBillPayment" (change)="updateForm('isBillPayment', $any($event.target).checked)" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 mt-0.5" />
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-slate-700">Consider as Card Bill Payment</span>
+                  <span class="text-xs text-slate-500">Counts as payment towards the card's invoice</span>
+                </div>
+              </label>
+
+              <!-- Paid Card Selector (if Bill Payment is checked) -->
+              @if (transactionForm().isBillPayment) {
+                <div class="pl-7 pt-1 animate-in slide-in-from-top-2">
+                  <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Paid Credit Card</label>
+                  <select required [value]="transactionForm().billPaymentCardId" (change)="updateForm('billPaymentCardId', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-medium">
+                    <option value="" disabled>Select Card...</option>
+                    @for (card of creditCards(); track card.id) {
+                      <option [value]="card.id">{{card.name}}</option>
+                    }
+                  </select>
+                </div>
+              }
+            }
+          </div>
+
+          @if (transactionForm().type === 'expense' && !transactionForm().isBillPayment) {
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Spending Classification</label>
+              <div class="flex bg-slate-100 p-1 rounded-xl">
+                <button type="button" (click)="updateForm('spendingGroup', 'weekly')"
+                        class="flex-1 py-2 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-1.5"
+                        [class]="(transactionForm().spendingGroup || 'weekly') === 'weekly' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'">
+                  <i class="ph ph-calendar-blank"></i> Weekly
+                </button>
+                <button type="button" (click)="updateForm('spendingGroup', 'fixed')"
+                        class="flex-1 py-2 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-1.5"
+                        [class]="transactionForm().spendingGroup === 'fixed' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'">
+                  <i class="ph ph-lock"></i> Fixed
+                </button>
+                <button type="button" (click)="updateForm('spendingGroup', 'emergency')"
+                        class="flex-1 py-2 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-1.5"
+                        [class]="transactionForm().spendingGroup === 'emergency' ? 'bg-white text-red-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'">
+                  <i class="ph ph-warning-octagon"></i> Emergency
+                </button>
+              </div>
+            </div>
+          }
           <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date</label>
             <input type="date" required [value]="transactionForm().date" (input)="updateForm('date', $any($event.target).value)"
@@ -390,9 +231,26 @@
           <button (click)="closePayBillModal()" class="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><i class="ph ph-x"></i></button>
         </div>
         
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex justify-between items-center">
-          <div><p class="text-xs text-slate-500 font-bold uppercase">Card</p><p class="font-semibold text-slate-800">{{ billData()?.card?.name }}</p></div>
-          <div class="text-right"><p class="text-xs text-slate-500 font-bold uppercase">Total to Pay</p><p class="font-bold text-lg text-slate-800">{{ fm(billData()?.bill?.billAmount) }}</p></div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-2">
+          <div class="flex justify-between items-center">
+            <div><p class="text-xs text-slate-500 font-bold uppercase">Card</p><p class="font-semibold text-slate-800">{{ billData()?.card?.name }}</p></div>
+            <div class="text-right"><p class="text-xs text-slate-500 font-bold uppercase">Total Bill</p><p class="font-semibold text-slate-800">{{ fm(billData()?.bill?.billAmount) }}</p></div>
+          </div>
+          @if (billData()?.bill?.paidAmount > 0) {
+            <div class="flex justify-between items-center text-green-600 font-medium">
+              <span class="text-xs uppercase font-bold">Already Paid</span>
+              <span>{{ fm(billData()?.bill?.paidAmount) }}</span>
+            </div>
+            <div class="flex justify-between items-center border-t border-slate-200 pt-2 text-indigo-600 font-bold">
+              <span class="text-xs uppercase">Remaining to Pay</span>
+              <span class="text-lg">{{ fm(billData()?.bill?.billAmount - billData()?.bill?.paidAmount) }}</span>
+            </div>
+          } @else {
+            <div class="flex justify-between items-center border-t border-slate-200 pt-2 text-indigo-600 font-bold">
+              <span class="text-xs uppercase">Amount to Pay</span>
+              <span class="text-lg">{{ fm(billData()?.bill?.billAmount) }}</span>
+            </div>
+          }
         </div>
 
         @if (billError()) {

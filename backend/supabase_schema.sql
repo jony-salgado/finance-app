@@ -38,6 +38,7 @@ CREATE TABLE transactions (
     is_paid BOOLEAN DEFAULT true,
     tags TEXT[],
     ignore_in_analytics BOOLEAN DEFAULT false,
+    spending_group TEXT NOT NULL DEFAULT 'weekly' CHECK (spending_group IN ('weekly', 'fixed', 'emergency')),
     date DATE NOT NULL,
     reference_month TEXT,
     provider_transaction_id TEXT UNIQUE,

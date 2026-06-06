@@ -23,7 +23,7 @@ jest.mock('./components/open-finance-button/open-finance-button.component', () =
 
 // Mock service state
 const mockFinanceService = {
-  iconMap: { Utensils: 'ph-fork-knife' },
+  iconMap: { Utensils: 'ph-fork-knife' } as any,
   globalTransactions: () => [
     {
       id: '1',
@@ -33,7 +33,7 @@ const mockFinanceService = {
       date: '2026-06-02',
       category: 'cat-1',
       account: 'acc-1',
-    },
+    } as any,
     {
       id: '2',
       description: 'Salário',
@@ -42,7 +42,7 @@ const mockFinanceService = {
       date: '2026-06-01',
       category: 'cat-2',
       account: 'acc-1',
-    },
+    } as any,
   ],
   categories: () => [
     {
@@ -51,20 +51,21 @@ const mockFinanceService = {
       color: 'text-red-600',
       cardColor: '#ff0000',
       iconClass: 'ph-fork-knife',
-    },
+    } as any,
     {
       id: 'cat-2',
       name: 'Salário',
       color: 'text-green-600',
       cardColor: '#00ff00',
       iconClass: 'ph-bank',
-    },
+    } as any,
   ],
   accounts: () => [
-    { id: 'acc-1', name: 'Banco do Brasil', type: 'checking', initialBalance: 1000.0 },
+    { id: 'acc-1', name: 'Banco do Brasil', type: 'checking', initialBalance: 1000.0 } as any,
   ],
   error: () => null,
   extractHexColor: () => '#ffffff',
+  loadData: () => {},
 };
 
 jest.mock('@angular/core', () => {
@@ -108,6 +109,10 @@ describe('AppComponent Unit Tests', () => {
     expect(dashboard.accountBalance).toBe(3900.0);
     expect(dashboard.monthIncomes).toBe(3000.0);
     expect(dashboard.monthExpenses).toBe(100.0);
+    expect(dashboard.expensesByGroup).toBeDefined();
+    expect(dashboard.expensesByGroup.length).toBe(1);
+    expect(dashboard.expensesByGroup[0].id).toBe('weekly');
+    expect(dashboard.expensesByGroup[0].amount).toBe(100.0);
   });
 
   it('should map monthTransactions correctly for active month', () => {
@@ -118,5 +123,131 @@ describe('AppComponent Unit Tests', () => {
     const txns = component.monthTransactions();
     expect(txns.length).toBe(2);
     expect(txns[0].description).toBe('Mercado');
+  });
+
+  it('should toggle selectedCardIdForTransactions correctly', () => {
+    expect(component.selectedCardIdForTransactions()).toBeNull();
+    component.toggleCardTransactions('card-1');
+    expect(component.selectedCardIdForTransactions()).toBe('card-1');
+    component.toggleCardTransactions('card-1');
+    expect(component.selectedCardIdForTransactions()).toBeNull();
+  });
+
+  it('should compute selectedCardTransactions correctly in the billing period', () => {
+    const originalGlobalTransactions = mockFinanceService.globalTransactions;
+    const originalAccounts = mockFinanceService.accounts;
+    const originalCategories = mockFinanceService.categories;
+    const originalIconMap = mockFinanceService.iconMap;
+
+    mockFinanceService.iconMap = {
+      utensils: 'ph-fork-knife',
+      transfer: 'ph-arrows-left-right',
+    } as any;
+    mockFinanceService.accounts = () => [
+      { id: 'acc-1', name: 'Banco do Brasil', type: 'checking', initialBalance: 1000.0 } as any,
+      {
+        id: 'card-1',
+        name: 'Nubank',
+        type: 'credit_card',
+        closingDay: 5,
+        dueDay: 15,
+        cardLastDigits: '9999',
+      } as any,
+    ];
+    mockFinanceService.categories = () => [
+      {
+        id: 'cat-1',
+        name: 'Alimentação',
+        color: 'text-red-600',
+        cardColor: '#ff0000',
+        iconName: 'utensils',
+      } as any,
+    ];
+    mockFinanceService.globalTransactions = () => [
+      {
+        id: '1',
+        description: 'Mercado',
+        amount: 100.0,
+        type: 'expense',
+        date: '2026-06-02',
+        category: 'cat-1',
+        account: 'acc-1',
+      } as any,
+      {
+        id: '2',
+        description: 'Salário',
+        amount: 3000.0,
+        type: 'income',
+        date: '2026-06-01',
+        category: 'cat-2',
+        account: 'acc-1',
+      } as any,
+      {
+        id: '3',
+        description: 'Card Purchase',
+        amount: 50.0,
+        type: 'expense',
+        date: '2026-06-02',
+        category: 'cat-1',
+        account: 'card-1',
+      } as any,
+      {
+        id: '4',
+        description: 'Bill Payment',
+        amount: 150.0,
+        type: 'credit_card_payment',
+        date: '2026-06-01',
+        sourceAccount: 'acc-1',
+        destinationAccount: 'card-1',
+        referenceMonth: '2026-06',
+      } as any,
+      {
+        id: '5',
+        description: 'Card Refund',
+        amount: 30.0,
+        type: 'income',
+        date: '2026-06-03',
+        account: 'acc-1',
+        tags: ['estorno', 'estorno_card:card-1'],
+      } as any,
+      {
+        id: '6',
+        description: 'Next Bill Purchase',
+        amount: 80.0,
+        type: 'expense',
+        date: '2026-06-07',
+        category: 'cat-1',
+        account: 'card-1',
+      } as any,
+    ];
+
+    const testComponent = new AppComponent();
+    testComponent.currentMonthYear.set('2026-06');
+    testComponent.selectedCardIdForTransactions.set('card-1');
+
+    const txns = testComponent.selectedCardTransactions();
+
+    expect(txns.length).toBe(3);
+
+    const purchase = txns.find((t) => t.id === '3');
+    const payment = txns.find((t) => t.id === '4');
+    const refund = txns.find((t) => t.id === '5');
+
+    expect(purchase).toBeDefined();
+    expect(purchase?.isExpense).toBe(true);
+
+    expect(payment).toBeDefined();
+    expect(payment?.isBill).toBe(true);
+    expect(payment?.isExpense).toBe(false);
+
+    expect(refund).toBeDefined();
+    expect(refund?.isEstorno).toBe(true);
+    expect(refund?.isExpense).toBe(false);
+
+    // Restore original mock values
+    mockFinanceService.globalTransactions = originalGlobalTransactions;
+    mockFinanceService.accounts = originalAccounts;
+    mockFinanceService.categories = originalCategories;
+    mockFinanceService.iconMap = originalIconMap;
   });
 });

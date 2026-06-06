@@ -12,21 +12,73 @@ export class FinanceService {
 
   // Configurations
   iconMap: Record<string, string> = {
-    Utensils: 'ph-fork-knife',
-    Car: 'ph-car',
-    ShoppingCart: 'ph-shopping-cart',
-    GraduationCap: 'ph-graduation-cap',
-    HeartPulse: 'ph-heartbeat',
-    Landmark: 'ph-bank',
-    TrendingUp: 'ph-trend-up',
-    ListOrdered: 'ph-list-numbers',
-    Wallet: 'ph-wallet',
-    CreditCard: 'ph-credit-card',
-    Briefcase: 'ph-briefcase',
-    Coffee: 'ph-coffee',
-    Smartphone: 'ph-device-mobile',
-    Tags: 'ph-tag',
-    HelpCircle: 'ph-question',
+    utensils: 'ph ph-fork-knife',
+    car: 'ph ph-car',
+    'shopping-cart': 'ph ph-shopping-cart',
+    'shopping-bag': 'ph ph-shopping-bag',
+    'graduation-cap': 'ph ph-graduation-cap',
+    heartbeat: 'ph ph-heartbeat',
+    heart: 'ph ph-heart',
+    bank: 'ph ph-bank',
+    landmark: 'ph ph-bank',
+    'trend-up': 'ph ph-trend-up',
+    'trending-up': 'ph ph-trend-up',
+    'list-numbers': 'ph ph-list-numbers',
+    wallet: 'ph ph-wallet',
+    'credit-card': 'ph ph-credit-card',
+    briefcase: 'ph ph-briefcase',
+    coffee: 'ph ph-coffee',
+    'device-mobile': 'ph ph-device-mobile',
+    smartphone: 'ph ph-device-mobile',
+    tag: 'ph ph-tag',
+    tags: 'ph ph-tag',
+    house: 'ph ph-house',
+    home: 'ph ph-house',
+    airplane: 'ph ph-airplane',
+    plane: 'ph ph-airplane',
+    'game-controller': 'ph ph-game-controller',
+    ticket: 'ph ph-ticket',
+    gift: 'ph ph-gift',
+    barbell: 'ph ph-barbell',
+    dumbbell: 'ph ph-barbell',
+    'first-aid': 'ph ph-first-aid',
+    'paw-print': 'ph ph-paw-print',
+    dog: 'ph ph-paw-print',
+    wrench: 'ph ph-wrench',
+    lightning: 'ph ph-lightning',
+    zap: 'ph ph-lightning',
+    drop: 'ph ph-drop',
+    'wifi-high': 'ph ph-wifi-high',
+    book: 'ph ph-book',
+    'music-notes': 'ph ph-music-notes',
+    television: 'ph ph-television',
+    scissors: 'ph ph-scissors',
+    't-shirt': 'ph ph-t-shirt',
+    shirt: 'ph ph-t-shirt',
+    sneaker: 'ph ph-sneaker',
+    baby: 'ph ph-baby',
+    'soccer-ball': 'ph ph-soccer-ball',
+    'beer-bottle': 'ph ph-beer-bottle',
+    pizza: 'ph ph-pizza',
+    hamburger: 'ph ph-hamburger',
+    bus: 'ph ph-bus',
+    'gas-pump': 'ph ph-gas-pump',
+    bicycle: 'ph ph-bicycle',
+    shield: 'ph ph-shield',
+    'piggy-bank': 'ph ph-piggy-bank',
+    coins: 'ph ph-coins',
+    receipt: 'ph ph-receipt',
+    calendar: 'ph ph-calendar',
+    'magnifying-glass': 'ph ph-magnifying-glass',
+    smiley: 'ph ph-smiley',
+    smile: 'ph ph-smiley',
+    storefront: 'ph ph-storefront',
+    'plus-circle': 'ph ph-plus-circle',
+    repeat: 'ph ph-repeat',
+    clock: 'ph ph-clock',
+    question: 'ph ph-question',
+    'help-circle': 'ph ph-question',
+    activity: 'ph ph-activity',
   };
 
   tailwindColors: Record<string, string> = {
@@ -48,6 +100,30 @@ export class FinanceService {
   accounts = signal<Account[]>([]);
   categories = signal<Category[]>([]);
   error = signal<string | null>(null);
+  weeklyGoal = signal<number>(this.loadWeeklyGoal());
+
+  private loadWeeklyGoal(): number {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('weeklyGoal');
+        return saved ? parseFloat(saved) : 500.0;
+      } catch (e) {
+        return 500.0;
+      }
+    }
+    return 500.0;
+  }
+
+  saveWeeklyGoal(value: number) {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('weeklyGoal', value.toString());
+      } catch (e) {
+        console.error('Failed to save weekly goal to localStorage', e);
+      }
+    }
+    this.weeklyGoal.set(value);
+  }
 
   constructor() {
     this.loadData();
@@ -86,6 +162,7 @@ export class FinanceService {
   // Utils
   extractHexColor(colorClasses: string) {
     if (!colorClasses) return '#cbd5e1';
+    if (colorClasses.startsWith('#')) return colorClasses;
     for (const key in this.tailwindColors) {
       if (colorClasses.includes(key)) return this.tailwindColors[key];
     }

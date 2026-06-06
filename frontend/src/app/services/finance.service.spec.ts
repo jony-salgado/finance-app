@@ -53,7 +53,7 @@ describe('FinanceService Unit Tests', () => {
     expect(service.accounts()).toEqual([]);
     expect(service.categories()).toEqual([]);
     expect(service.error()).toBeNull();
-    expect(service.iconMap['Utensils']).toBe('ph-fork-knife');
+    expect(service.iconMap['utensils']).toBe('ph ph-fork-knife');
   });
 
   it('should correctly extract hex code from tailwind classes', () => {

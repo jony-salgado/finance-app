@@ -1,0 +1,40 @@
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 animate-in fade-in duration-300">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-lg font-bold text-slate-800">Manage Categories</h2>
+    <button (click)="parent().openCategoryForm()" class="text-sm bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100 transition">+ New Category</button>
+  </div>
+
+  @if (parent().categoryFormOpen()) {
+    <form (submit)="$event.preventDefault(); parent().saveCategory()" class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4 animate-in slide-in-from-top-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slate-500 mb-1">Category Name</label><input type="text" required [value]="parent().categoryForm()?.name || ''" (input)="parent().updateCategoryForm('name', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:outline-none" /></div>
+        <div><label class="block text-xs font-semibold text-slate-500 mb-1">Type</label><select [value]="parent().categoryForm()?.type || 'expense'" (change)="parent().updateCategoryForm('type', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none"><option value="expense">Expense</option><option value="income">Income</option></select></div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-2">Color</label>
+        <div class="flex gap-2 flex-wrap">
+          @for (c of parent().availableColors; track c) { <button type="button" (click)="parent().updateCategoryForm('color', c)" class="w-8 h-8 rounded-full {{c}}" [class.ring-2]="parent().categoryForm()?.color === c" [class.ring-offset-2]="parent().categoryForm()?.color === c" [class.ring-slate-400]="parent().categoryForm()?.color === c"></button> }
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-2">Icon</label>
+        <div class="flex gap-2 flex-wrap">
+          @for (key of parent().iconKeys; track key) { <button type="button" (click)="parent().updateCategoryForm('iconName', key)" class="p-2 rounded-lg border text-xl" [class]="parent().categoryForm()?.iconName?.toLowerCase() === key ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'"><i [class]="parent().iconMap[key]"></i></button> }
+        </div>
+      </div>
+      <div class="flex gap-3 justify-end pt-2"><button type="button" (click)="parent().closeCategoryForm()" class="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-200 rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Save</button></div>
+    </form>
+  }
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    @for (c of parent().categories(); track c.id) {
+      <div class="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 group">
+        <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center {{c.color}}"><i [class]="parent().iconMap[c.iconName.toLowerCase()] || 'ph ph-question'"></i></div><div><p class="font-semibold text-slate-800">{{c.name}}</p><p class="text-xs text-slate-400 capitalize">{{c.type}}</p></div></div>
+        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+          <button (click)="parent().openCategoryForm(c)" class="p-2 text-slate-400 hover:text-indigo-500 rounded-lg"><i class="ph ph-pencil-simple text-lg"></i></button>
+          <button (click)="parent().deleteCategory(c.id)" class="p-2 text-slate-400 hover:text-red-500 rounded-lg"><i class="ph ph-trash text-lg"></i></button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

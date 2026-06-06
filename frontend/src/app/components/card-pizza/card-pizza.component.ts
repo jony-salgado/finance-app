@@ -17,7 +17,7 @@ import { CommonModule } from '@angular/common';
           <p class="text-slate-400 font-medium text-center">No expenses this month.</p>
         </div>
       } @else {
-        <div class="flex flex-col xl:flex-row items-center gap-6 xl:gap-8 flex-1">
+        <div class="flex flex-col sm:flex-row md:flex-col items-center gap-6 flex-1 w-full">
           <div
             class="relative w-36 h-36 shrink-0 rounded-full shadow-inner"
             [style.background]="'conic-gradient(' + gradientStops() + ')'"
@@ -30,19 +30,17 @@ import { CommonModule } from '@angular/common';
           </div>
           <div class="flex-1 w-full space-y-3">
             @for (d of data(); track d.id) {
-              <div class="flex items-center justify-between text-sm">
-                <div class="flex items-center gap-2">
+              <div class="flex items-center justify-between text-sm w-full gap-4">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
                   <span
-                    class="w-3 h-3 rounded-full shadow-sm"
+                    class="w-3 h-3 rounded-full shadow-sm shrink-0"
                     [style.backgroundColor]="d.hexColor"
                   ></span>
-                  <span
-                    class="text-slate-600 font-medium truncate max-w-[120px]"
-                    [title]="d.name"
-                    >{{ d.name }}</span
-                  >
+                  <span class="text-slate-600 font-medium truncate" [title]="d.name">{{
+                    d.name
+                  }}</span>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 shrink-0">
                   <span class="text-slate-400 text-xs w-10 text-right"
                     >{{ d.percentage.toFixed(1) }}%</span
                   >

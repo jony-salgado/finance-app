@@ -1,0 +1,48 @@
+<div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    @for (card of parent().summaryCards(); track card.title) {
+      <app-card-resumo 
+        [title]="card.title" 
+        [amount]="card.amount" 
+        [iconClass]="card.iconClass" 
+        [iconBg]="card.bgIcon" 
+        [isHighlighted]="card.highlight" 
+        [tooltip]="card.tooltip">
+      </app-card-resumo>
+    }
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- Balance by Account -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full min-h-[200px] md:col-span-2 lg:col-span-3">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-bank text-xl text-slate-400"></i>
+          <h3 class="text-slate-700 font-bold">Balance by Account</h3>
+        </div>
+        <app-open-finance-button></app-open-finance-button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
+        @for (accEx of parent().dash().displayAccountBalances; track accEx.id) {
+          <div class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-100 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-white shadow-sm text-indigo-600 flex items-center justify-center"><i class="ph ph-bank"></i></div>
+              <span class="font-semibold text-slate-700">{{ accEx.name }}</span>
+            </div>
+            <span class="font-bold text-lg" [class.text-red-600]="accEx.balance < 0" [class.text-slate-800]="accEx.balance >= 0">{{ accEx.formattedBalance }}</span>
+          </div>
+        }
+        @if (parent().dash().displayAccountBalances.length === 0) { <p class="text-slate-400 text-sm py-4 col-span-full text-center">No accounts registered.</p> }
+      </div>
+    </div>
+
+    <!-- Charts -->
+    @for (chart of parent().chartCards(); track chart.title) {
+      <app-card-pizza 
+        [title]="chart.title" 
+        [data]="chart.data">
+      </app-card-pizza>
+    }
+  </div>
+</div>

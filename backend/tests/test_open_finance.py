@@ -7,6 +7,7 @@ from app.api.endpoints.open_finance_helpers import (
     generate_unique_account_name,
     extract_credit_card_due_day,
     map_pluggy_txn_dict_to_db,
+    map_pluggy_category,
 )
 from app.core.constants import (
     ACCOUNT_TYPE_CHECKING,
@@ -194,3 +195,14 @@ def test_webhook_endpoint(client: TestClient, mock_supabase: MagicMock) -> None:
     assert response.json() == {"status": "ok"}
     mock_supabase.table.assert_any_call("accounts")
     mock_supabase.table.assert_any_call("transactions")
+
+
+def test_map_pluggy_category() -> None:
+    """
+    Test mapping Pluggy categories to local db schema categories.
+    """
+    assert map_pluggy_category("food") == "Alimentação"
+    assert map_pluggy_category("FOOD") == "Alimentação"
+    assert map_pluggy_category("restaurants") == "Alimentação"
+    assert map_pluggy_category("unknown_category") == "unknown_category"
+    assert map_pluggy_category(None) == "Outros"

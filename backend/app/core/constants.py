@@ -51,3 +51,22 @@ DEFAULT_CARD_LAST_DIGITS = "9999"
 DEFAULT_DUE_DAY = 10
 DEFAULT_CLOSING_DAY_OFFSET = 7
 DEFAULT_CLOSING_DAY_FALLBACK = 28
+
+# Pluggy category mapping
+PLUGGY_CATEGORY_MAP = {
+    "transfers": "Outros",
+    "same person transfer": "Outros",
+    "telecommunications": "Serviços",
+    "investments": "Investimento",
+    "food": "Alimentação",
+    "groceries": "Supermercado",
+    "restaurants": "Alimentação",
+    "health": "Saúde",
+    "transport": "Transporte",
+    "travel": "Viagem",
+    "shopping": "Compras",
+    "utilities": "Casa",
+    "services": "Serviços",
+    "education": "Educação",
+    "entertainment": "Lazer",
+}
