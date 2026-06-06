@@ -2,6 +2,9 @@ if (typeof window === 'undefined') {
   (global as any).window = {
     location: {
       origin: 'http://localhost',
+      href: 'http://localhost',
+      hash: '',
+      search: '',
     },
   };
 }
@@ -124,5 +127,20 @@ describe('AuthService Unit Tests', () => {
     const callback = mockSupabaseClient.auth.onAuthStateChange.mock.calls[0][0];
     callback('SIGNED_IN', { user: {} } as any);
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
+  it('should manually set session when access_token and refresh_token are present in URL hash', () => {
+    window.location.hash = '#access_token=url-access-token&refresh_token=url-refresh-token';
+    mockSupabaseClient.auth.setSession.mockResolvedValue({ data: { session: {} }, error: null });
+
+    const serviceWithTokens = new AuthService();
+
+    expect(mockSupabaseClient.auth.setSession).toHaveBeenCalledWith({
+      access_token: 'url-access-token',
+      refresh_token: 'url-refresh-token',
+    });
+
+    // Cleanup for other tests
+    window.location.hash = '';
   });
 });

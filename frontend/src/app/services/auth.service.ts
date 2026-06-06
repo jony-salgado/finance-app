@@ -27,23 +27,18 @@ export class AuthService {
     const supabaseAnonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvc3p1emh3ZW9ncXBmdmVpdGppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NDkyODEsImV4cCI6MjA5NTEyNTI4MX0.vLYvdsGaFZ-3aKtFRcLL3St6YeohfMUHWQJj7bgdhhs';
 
-    this.supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Safari iOS ITP & persistent session optimization: autoRefreshToken, persistSession, detectSessionInUrl explicit
+    const supabaseOptions = {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+    };
 
-    // Fetch initial session asynchronously if there's no dev mock session already active
-    if (!this.sessionState()) {
-      this.initialized = this.supabase.auth
-        .getSession()
-        .then(({ data: { session } }) => {
-          if (!this.sessionState()) {
-            this.sessionState.set(session);
-          }
-        })
-        .catch((err) => {
-          console.error('Error fetching initial session:', err);
-        });
-    } else {
-      this.initialized = Promise.resolve();
-    }
+    this.supabase = createClient(supabaseUrl, supabaseAnonKey, supabaseOptions);
+
+    this.initialized = this.initializeSession();
 
     // Listen to authentication state updates (sign-in, sign-out, session refreshes)
     this.supabase.auth.onAuthStateChange((event, session) => {
@@ -59,6 +54,80 @@ export class AuthService {
         router.navigate(['/dashboard']);
       }
     });
+  }
+
+  private async initializeSession(): Promise<void> {
+    // 1. If we have a dev mock session already active, resolve immediately
+    if (this.sessionState()) {
+      return;
+    }
+
+    // 2. iOS/Safari compatibility helper: Parse URL hash & query params before Angular routing alters them
+    const tokens = this.extractTokensFromUrl();
+    if (tokens.accessToken && tokens.refreshToken) {
+      try {
+        console.log('Safari iOS Helper: Found tokens in URL, setting session manually...');
+        const {
+          data: { session },
+          error,
+        } = await this.supabase.auth.setSession({
+          access_token: tokens.accessToken,
+          refresh_token: tokens.refreshToken,
+        });
+
+        if (error) throw error;
+
+        if (session) {
+          this.sessionState.set(session);
+          return;
+        }
+      } catch (err) {
+        console.error('Safari iOS Helper: Failed to manually set session from URL', err);
+      }
+    }
+
+    // 3. Fallback: Fetch initial session asynchronously from Supabase SDK
+    try {
+      const {
+        data: { session },
+      } = await this.supabase.auth.getSession();
+      if (!this.sessionState() && session) {
+        this.sessionState.set(session);
+      }
+    } catch (err) {
+      console.error('Error fetching initial session:', err);
+    }
+  }
+
+  private extractTokensFromUrl(): { accessToken: string | null; refreshToken: string | null } {
+    if (typeof window === 'undefined') {
+      return { accessToken: null, refreshToken: null };
+    }
+
+    const href = window.location.href;
+    let accessToken: string | null = null;
+    let refreshToken: string | null = null;
+
+    try {
+      // Parse hash fragment natively
+      const hash = window.location.hash;
+      if (hash) {
+        const params = new URLSearchParams(hash.substring(1));
+        accessToken = params.get('access_token');
+        refreshToken = params.get('refresh_token');
+      }
+
+      // Parse query params if not found in hash
+      if (!accessToken || !refreshToken) {
+        const urlObj = new URL(href);
+        accessToken = urlObj.searchParams.get('access_token');
+        refreshToken = urlObj.searchParams.get('refresh_token');
+      }
+    } catch (e) {
+      console.error('Error parsing tokens from URL:', e);
+    }
+
+    return { accessToken, refreshToken };
   }
 
   private loadMockSession(): Session | null {
