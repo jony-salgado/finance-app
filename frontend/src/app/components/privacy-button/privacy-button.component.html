@@ -1,0 +1,13 @@
+<button
+  type="button"
+  (click)="privacyService.togglePrivacyMode()"
+  class="p-2.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition active:scale-95 shadow-sm flex items-center justify-center gap-2"
+  [title]="privacyService.isPrivateMode() ? 'Show sensitive values' : 'Hide sensitive values'"
+  aria-label="Toggle privacy mode"
+>
+  @if (privacyService.isPrivateMode()) {
+    <i class="ph ph-eye-closed text-xl"></i>
+  } @else {
+    <i class="ph ph-eye text-xl"></i>
+  }
+</button>

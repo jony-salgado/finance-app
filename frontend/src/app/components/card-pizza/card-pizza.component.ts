@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { PrivacyService } from '../../services/privacy.service';
 
 @Component({
   selector: 'app-card-pizza',
@@ -41,10 +42,20 @@ import { CommonModule } from '@angular/common';
                   }}</span>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
-                  <span class="text-slate-400 text-xs w-10 text-right"
-                    >{{ d.percentage.toFixed(1) }}%</span
-                  >
-                  <span class="text-slate-800 font-semibold">{{ format(d.amount) }}</span>
+                  <span class="text-slate-400 text-xs w-10 text-right">
+                    @if (privacyService.isPrivateMode()) {
+                      ...%
+                    } @else {
+                      {{ d.percentage.toFixed(1) }}%
+                    }
+                  </span>
+                  <span class="text-slate-800 font-semibold">
+                    @if (privacyService.isPrivateMode()) {
+                      R$ .....
+                    } @else {
+                      {{ format(d.amount) }}
+                    }
+                  </span>
                 </div>
               </div>
             }
@@ -55,6 +66,8 @@ import { CommonModule } from '@angular/common';
   `,
 })
 export class CardPizzaComponent {
+  privacyService = inject(PrivacyService);
+
   title = input<string>('');
   data = input<any[]>([]);
 

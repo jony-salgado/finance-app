@@ -7,8 +7,8 @@ import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 export class AuthService {
   private supabase: SupabaseClient;
 
-  // Use signals to manage authentication state reactively
-  private sessionState = signal<Session | null>(null);
+  // Use signals to manage authentication state reactively, initializing from a dev mock session if present
+  private sessionState = signal<Session | null>(this.loadMockSession());
 
   currentUser = computed(() => this.sessionState()?.user ?? null);
   isAuthenticated = computed(() => !!this.sessionState());
@@ -21,15 +21,70 @@ export class AuthService {
 
     this.supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Fetch initial session asynchronously
-    this.supabase.auth.getSession().then(({ data: { session } }) => {
-      this.sessionState.set(session);
-    });
+    // Fetch initial session asynchronously if there's no dev mock session already active
+    if (!this.sessionState()) {
+      this.supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!this.sessionState()) {
+          this.sessionState.set(session);
+        }
+      });
+    }
 
     // Listen to authentication state updates (sign-in, sign-out, session refreshes)
     this.supabase.auth.onAuthStateChange((_event, session) => {
-      this.sessionState.set(session);
+      // Only overwrite if we don't have an active dev mock session
+      if (
+        typeof localStorage !== 'undefined' &&
+        !localStorage.getItem('finance_app_mock_session')
+      ) {
+        this.sessionState.set(session);
+      }
     });
+  }
+
+  private loadMockSession(): Session | null {
+    if (typeof localStorage !== 'undefined') {
+      const savedMock = localStorage.getItem('finance_app_mock_session');
+      if (savedMock) {
+        try {
+          return JSON.parse(savedMock);
+        } catch (e) {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Bypasses authentication in development mode by setting a mock session.
+   */
+  bypassLogin(): void {
+    const mockSession = {
+      access_token: 'mock-access-token',
+      refresh_token: 'mock-refresh-token',
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: {
+        id: 'mock-user-uuid-1234',
+        aud: 'authenticated',
+        role: 'authenticated',
+        email: 'jony.salgado@example.com',
+        email_confirmed_at: new Date().toISOString(),
+        phone: '',
+        confirmed_at: new Date().toISOString(),
+        last_sign_in_at: new Date().toISOString(),
+        app_metadata: { provider: 'email' },
+        user_metadata: {},
+        identities: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    };
+    this.sessionState.set(mockSession as any);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('finance_app_mock_session', JSON.stringify(mockSession));
+    }
   }
 
   /**
@@ -53,6 +108,10 @@ export class AuthService {
    * Log out the currently authenticated user.
    */
   async signOut(): Promise<void> {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('finance_app_mock_session');
+    }
+    this.sessionState.set(null);
     const { error } = await this.supabase.auth.signOut();
     if (error) {
       throw error;

@@ -27,6 +27,10 @@ jest.mock('../../components/open-finance-button/open-finance-button.component', 
   OpenFinanceButtonComponent: class {},
 }));
 
+jest.mock('../../components/privacy-button/privacy-button.component', () => ({
+  PrivacyButtonComponent: class {},
+}));
+
 // Mock service state
 const mockFinanceService = {
   iconMap: { Utensils: 'ph-fork-knife' } as any,

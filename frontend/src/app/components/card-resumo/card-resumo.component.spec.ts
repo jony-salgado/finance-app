@@ -15,10 +15,32 @@ jest.mock('@angular/core', () => {
     return s;
   };
 
+  const mockSignal = <T>(initialValue: T): any => {
+    let val: T = initialValue;
+    const s: any = () => val;
+    s.set = (newVal: T) => {
+      val = newVal;
+    };
+    s.update = (fn: (v: T) => T) => {
+      val = fn(val);
+    };
+    return s;
+  };
+
   return {
     Component: () => (target: any) => target,
+    Injectable: () => (target: any) => target,
     ChangeDetectionStrategy: { OnPush: 0 },
     input: mockInput,
+    signal: mockSignal,
+    inject: (token: any) => {
+      if (token && token.name === 'PrivacyService') {
+        return {
+          isPrivateMode: () => false,
+        };
+      }
+      return null;
+    },
   };
 });
 

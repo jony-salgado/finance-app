@@ -13,6 +13,7 @@ jest.mock('@angular/router', () => ({
 const mockAuthService = {
   signInWithOtp: jest.fn(),
   setSession: jest.fn(),
+  bypassLogin: jest.fn(),
 };
 
 const mockRouter = {
@@ -139,6 +140,31 @@ describe('LoginComponent Unit Tests', () => {
     expect(mockAuthService.setSession).toHaveBeenCalledWith('abc', 'xyz');
     expect(component.successMessage()).toBeNull();
     expect(component.errorMessage()).toBe('Invalid token');
+    expect(component.loading()).toBe(false);
+  });
+
+  it('should call authService.bypassLogin successfully and redirect to dashboard', async () => {
+    mockAuthService.bypassLogin.mockImplementation(() => {});
+    await component.onBypassLogin();
+
+    expect(mockAuthService.bypassLogin).toHaveBeenCalled();
+    expect(component.successMessage()).toBe('Bypassed login successfully! Redirecting...');
+    expect(component.errorMessage()).toBeNull();
+
+    // Trigger fake timers to check navigation
+    jest.runAllTimers();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
+  it('should handle bypassLogin failure', async () => {
+    mockAuthService.bypassLogin.mockImplementation(() => {
+      throw new Error('Bypass failed');
+    });
+    await component.onBypassLogin();
+
+    expect(mockAuthService.bypassLogin).toHaveBeenCalled();
+    expect(component.successMessage()).toBeNull();
+    expect(component.errorMessage()).toBe('Bypass failed');
     expect(component.loading()).toBe(false);
   });
 });

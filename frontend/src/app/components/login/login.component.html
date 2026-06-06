@@ -96,6 +96,21 @@
             <i class="ph ph-terminal-window text-base"></i>
             <span>Inject Token & Sign In</span>
           </button>
+
+          <div class="relative flex py-1 items-center">
+            <div class="flex-grow border-t border-red-500/15"></div>
+            <span class="flex-shrink mx-3 text-[10px] text-red-500/45 font-bold uppercase tracking-widest">OR</span>
+            <div class="flex-grow border-t border-red-500/15"></div>
+          </div>
+
+          <button
+            type="button"
+            [disabled]="loading()"
+            (click)="onBypassLogin()"
+            class="w-full py-2.5 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-200 hover:text-indigo-100 text-xs font-semibold rounded-xl transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5 active:scale-[0.98]">
+            <i class="ph ph-user-check text-base"></i>
+            <span>Auto Login / Bypass (Dev)</span>
+          </button>
         </div>
       </div>
     }

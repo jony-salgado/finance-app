@@ -105,6 +105,25 @@ export class LoginComponent {
     }
   }
 
+  async onBypassLogin() {
+    this.loading.set(true);
+    this.successMessage.set(null);
+    this.errorMessage.set(null);
+
+    try {
+      this.authService.bypassLogin();
+      this.successMessage.set('Bypassed login successfully! Redirecting...');
+      setTimeout(() => {
+        this.router.navigate(['/dashboard']);
+      }, 1000);
+    } catch (err: any) {
+      console.error(err);
+      this.errorMessage.set(err.message || 'Failed to bypass login.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   async onSubmit() {
     if (!this.email()) return;
 

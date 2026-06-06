@@ -16,6 +16,7 @@ import { CardsTabComponent } from '../tabs/cards-tab.component';
 import { AccountsTabComponent } from '../tabs/accounts-tab.component';
 import { CategoriesTabComponent } from '../tabs/categories-tab.component';
 import { MetaTabComponent } from '../tabs/meta-tab.component';
+import { PrivacyButtonComponent } from '../privacy-button/privacy-button.component';
 import { Transaction, Account, Category } from '../../models';
 
 @Component({
@@ -29,6 +30,7 @@ import { Transaction, Account, Category } from '../../models';
     AccountsTabComponent,
     CategoriesTabComponent,
     MetaTabComponent,
+    PrivacyButtonComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',

@@ -30,7 +30,17 @@
               <div class="w-10 h-10 rounded-full bg-white shadow-sm text-indigo-600 flex items-center justify-center"><i class="ph ph-bank"></i></div>
               <span class="font-semibold text-slate-700">{{ accEx.name }}</span>
             </div>
-            <span class="font-bold text-lg" [class.text-red-600]="accEx.balance < 0" [class.text-slate-800]="accEx.balance >= 0">{{ accEx.formattedBalance }}</span>
+            <span
+              class="font-bold text-lg transition-all duration-200"
+              [class.text-red-600]="accEx.balance < 0"
+              [class.text-slate-800]="accEx.balance >= 0"
+            >
+              @if (privacyService.isPrivateMode()) {
+                R$ .....
+              } @else {
+                {{ accEx.formattedBalance }}
+              }
+            </span>
           </div>
         }
         @if (parent().dash().displayAccountBalances.length === 0) { <p class="text-slate-400 text-sm py-4 col-span-full text-center">No accounts registered.</p> }

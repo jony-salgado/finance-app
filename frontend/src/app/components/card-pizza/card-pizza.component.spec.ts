@@ -33,11 +33,20 @@ jest.mock('@angular/core', () => {
 
   return {
     Component: () => (target: any) => target,
+    Injectable: () => (target: any) => target,
     ChangeDetectionStrategy: { OnPush: 0 },
     signal: mockSignal,
     input: mockInput,
     computed: (fn: any) => {
       return () => fn();
+    },
+    inject: (token: any) => {
+      if (token && token.name === 'PrivacyService') {
+        return {
+          isPrivateMode: () => false,
+        };
+      }
+      return null;
     },
   };
 });

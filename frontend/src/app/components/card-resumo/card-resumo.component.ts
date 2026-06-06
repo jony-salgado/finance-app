@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { PrivacyService } from '../../services/privacy.service';
 
 @Component({
   selector: 'app-card-resumo',
@@ -24,7 +25,13 @@ import { CommonModule } from '@angular/common';
         }
       </div>
       <div class="z-10">
-        <span class="text-2xl md:text-3xl font-bold text-slate-800">{{ format(amount()) }}</span>
+        <span class="text-2xl md:text-3xl font-bold text-slate-800 transition-all duration-200">
+          @if (privacyService.isPrivateMode()) {
+            R$ .....
+          } @else {
+            {{ format(amount()) }}
+          }
+        </span>
       </div>
       @if (isHighlighted()) {
         <div
@@ -35,6 +42,8 @@ import { CommonModule } from '@angular/common';
   `,
 })
 export class CardResumoComponent {
+  privacyService = inject(PrivacyService);
+
   title = input<string>('');
   amount = input<number>(0);
   iconClass = input<string>('');
