@@ -222,20 +222,54 @@ export class AuthService {
 
   /**
    * Verifies an OTP token hash (like from a verification email link) and establishes a session.
+   * Employs sequential type fallback and a GET request redirect intercept as a final fail-safe.
    */
   async verifyOtp(tokenHash: string, type: any): Promise<void> {
-    const { data, error } = await this.supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: type,
-    });
+    const typesToTry = [type, 'magiclink', 'email', 'signup', 'invite'];
+    let lastError: any = null;
 
-    if (error) {
-      throw error;
+    for (const t of typesToTry) {
+      if (!t) continue;
+      try {
+        const { data, error } = await this.supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: t,
+        });
+        if (!error && data && data.session) {
+          this.sessionState.set(data.session);
+          return;
+        }
+        if (error) lastError = error;
+      } catch (err) {
+        lastError = err;
+      }
     }
 
-    if (data && data.session) {
-      this.sessionState.set(data.session);
+    // Fail-safe fallback: Trigger the verification endpoint directly via GET,
+    // let Supabase process it server-side, follow the redirect and parse the resulting session hash
+    try {
+      const redirectUrl = typeof window !== 'undefined' ? window.location.origin + '/login' : '';
+      const verifyUrl = `https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=${tokenHash}&type=${type || 'magiclink'}&redirect_to=${encodeURIComponent(redirectUrl)}`;
+
+      const response = await fetch(verifyUrl, { method: 'GET', redirect: 'follow' });
+      const finalUrl = response.url;
+
+      if (finalUrl && finalUrl.includes('#')) {
+        const hash = finalUrl.split('#')[1];
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          await this.setSession(accessToken, refreshToken);
+          return;
+        }
+      }
+    } catch (err) {
+      // Suppress fallback errors to return the primary SDK error
     }
+
+    throw lastError || new Error('Auth verification failed.');
   }
 
   /**
