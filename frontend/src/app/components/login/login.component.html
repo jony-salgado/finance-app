@@ -81,10 +81,10 @@
       <div class="mt-8 pt-6 border-t border-dashed border-indigo-500/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div class="flex items-center gap-2 mb-3">
           <i class="ph ph-link-simple text-indigo-400 text-lg"></i>
-          <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Entrar Manualmente via Link</h3>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Entrar Manualmente via Link ou Código</h3>
         </div>
         <p class="text-xs text-slate-400 mb-3">
-          Cole o link completo do Magic Link recebido no seu e-mail para fazer o login no Web App.
+          Cole o link de confirmação do e-mail ou insira o código OTP de 6 dígitos para entrar.
         </p>
         <div class="space-y-3">
           <textarea
@@ -92,7 +92,7 @@
             [disabled]="loading()"
             [value]="pastedUrl()"
             (input)="pastedUrl.set($any($event.target).value)"
-            placeholder="Cole o link do e-mail aqui (ex: https://...#access_token=...)"
+            placeholder="Cole o link ou digite o código de 6 dígitos aqui (ex: 123456)"
             class="w-full h-20 bg-black/40 border border-indigo-500/20 rounded-xl p-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all font-mono resize-none"></textarea>
           
           <button
@@ -102,7 +102,7 @@
             (click)="onInjectToken()"
             class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
             <i class="ph ph-sign-in text-base"></i>
-            <span>Entrar com o Link</span>
+            <span>Entrar com o Link / Código</span>
           </button>
         </div>
       </div>

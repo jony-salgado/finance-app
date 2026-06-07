@@ -129,6 +129,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     };
   }
 
+  navigateTo(url: string) {
+    if (typeof window !== 'undefined') {
+      window.location.href = url;
+    }
+  }
+
   async onInjectToken() {
     const text = this.pastedUrl().trim();
     if (!text) {
@@ -136,31 +142,53 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const otp = this.parseOtp(text);
-
     this.loading.set(true);
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
     try {
-      if (otp.token && otp.type) {
-        // Case 1: Verification link from email (OTP token_hash + type)
-        await this.authService.verifyOtp(otp.token, otp.type);
+      // Case 1: Pasted string contains a token (token_hash) and type parameter (like a raw Supabase verify URL)
+      const { token, type } = this.parseOtp(text);
+      if (token && type) {
+        await this.authService.verifyOtp(token, type);
         this.successMessage.set('Sessão verificada com sucesso! Redirecionando...');
-      } else {
-        // Case 2: Redirect URL containing access_token & refresh_token
-        const { accessToken, refreshToken } = this.parseTokens(text);
-        if (!accessToken || !refreshToken) {
+        this.pastedUrl.set('');
+        setTimeout(() => {
+          this.router.navigate(['/dashboard']);
+        }, 1000);
+        return;
+      }
+
+      // Case 2: Pasted string is a 6-digit numeric OTP code
+      const isOtpCode = /^\d{6}$/.test(text);
+      if (isOtpCode) {
+        if (!this.email()) {
           this.errorMessage.set(
-            'Não foi possível extrair os tokens de acesso ou verificação do texto fornecido.',
+            'Por favor, insira o seu e-mail no campo acima antes de verificar o código de 6 dígitos.',
           );
           this.loading.set(false);
           return;
         }
-        await this.authService.setSession(accessToken, refreshToken);
-        this.successMessage.set('Sessão iniciada com sucesso! Redirecionando...');
+        await this.authService.verifyOtpCode(this.email(), text, 'email');
+        this.successMessage.set('Sessão verificada com sucesso! Redirecionando...');
+        this.pastedUrl.set('');
+        setTimeout(() => {
+          this.router.navigate(['/dashboard']);
+        }, 1000);
+        return;
       }
 
+      // Case 3: Redirect URL containing access_token & refresh_token
+      const { accessToken, refreshToken } = this.parseTokens(text);
+      if (!accessToken || !refreshToken) {
+        this.errorMessage.set(
+          'Não foi possível extrair os tokens de acesso ou verificação do texto fornecido.',
+        );
+        this.loading.set(false);
+        return;
+      }
+      await this.authService.setSession(accessToken, refreshToken);
+      this.successMessage.set('Sessão iniciada com sucesso! Redirecionando...');
       this.pastedUrl.set('');
       setTimeout(() => {
         this.router.navigate(['/dashboard']);

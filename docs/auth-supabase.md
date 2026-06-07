@@ -71,19 +71,36 @@ Ao utilizar a aplicação instalada no iPhone como um **Web App (PWA)** na tela 
 * Ao clicar no link do Magic Link recebido no e-mail (ex: Outlook, Gmail, Mail App), o iOS abre o link **obrigatoriamente no navegador padrão** (Safari ou Chrome convencional).
 * Como o estado de sessão de cookies/localStorage do Safari convencional é **isolado** da sandbox da tela de início do PWA, o Web App instalado na tela de início permanece **deslogado**, impedindo o login fluido.
 
-### B. Solução: Login Manual via Link (Bypass Secreto)
-Para contornar o isolamento de sandbox do iOS, implementamos um mecanismo secreto de injeção direta de tokens de autenticação:
+### B. O Problema de Links Expirados ("email link is invalid or has expired")
+Muitos provedores de e-mail (como Outlook/Microsoft Defender, Gmail ou antivírus corporativos) utilizam sistemas de varredura de links (**anti-spam pre-fetching**). Quando o e-mail chega ou é aberto, o scanner do e-mail faz uma requisição HTTP `GET` automática ao link para inspecioná-lo. Como os links de autenticação do Supabase são de **uso único (single-use)**, essa varredura do scanner consome o token instantaneamente. Ao tentar copiar o link ou abri-lo, ele já consta como expirado ou inválido.
+
+### C. Solução: Login Manual via Link ou Código OTP de 6 dígitos (Bypass Secreto)
+Para contornar o isolamento de sandbox do iOS e o problema de pré-carregamento dos links de e-mail, implementamos um mecanismo secreto de injeção direta de tokens e suporte a **códigos OTP de 6 dígitos**:
 
 #### Passo a Passo para o Usuário no iPhone:
 1. Abra o aplicativo instalado na tela de início (**PWA**).
 2. Na tela de login, clique **5 vezes seguidas** na logo ou no título **"FinanceApp"**.
-3. Uma seção oculta intitulada **"Entrar Manualmente via Link"** aparecerá na parte inferior da tela.
-4. Digite o seu endereço de e-mail no campo padrão da parte superior.
-5. Acesse seu aplicativo de e-mail, **copie o link de verificação** enviado pelo Supabase (ou o endereço final para onde ele te redirecionou) e **cole-o** no campo de texto da seção secreta.
-6. Clique em **"Entrar com o Link"**.
-7. O aplicativo processará a validação do OTP ou os tokens de autenticação via API e estabelecerá a sessão de login diretamente dentro da sandbox do PWA, redirecionando-o para o `/dashboard`.
+3. Uma seção oculta intitulada **"Entrar Manualmente via Link ou Código"** aparecerá na parte inferior da tela.
+4. Insira seu endereço de e-mail no campo padrão do topo.
+5. Siga um dos métodos abaixo:
+   * **Método 1 (Código OTP de 6 dígitos - Recomendado):** Se configurado no Supabase, copie o código de 6 dígitos enviado no e-mail (ex: `123456`), cole no campo secreto e clique em **"Entrar com o Link"**.
+   * **Método 2 (Link de Verificação):** Sem clicar no link no e-mail, **copie o endereço do link de confirmação** e cole no campo secreto. Clique em **"Entrar com o Link"**.
+6. O aplicativo processará a validação do OTP ou os tokens de autenticação via API e estabelecerá a sessão de login diretamente dentro da sandbox do PWA, redirecionando-o para o `/dashboard`.
 
-#### Exemplo de link aceito pelo campo secreto:
+#### D. Como Ajustar o Supabase para Suportar Código OTP
+Para que o usuário receba o código de 6 dígitos no e-mail:
+1. Acesse o **Supabase Dashboard > Auth > Email Templates**.
+2. No template de **Magic Link** (ou **Sign Up**), adicione a variável `{{ .Token }}` que corresponde ao código OTP de 6 dígitos. Exemplo:
+   ```html
+   <h2>Login no FinanceApp</h2>
+   <p>Seu código de login de 6 dígitos é: <strong>{{ .Token }}</strong></p>
+   <p>Ou clique no link para entrar: <a href="{{ .ConfirmationURL }}">Confirmar Login</a></p>
+   ```
+3. Salve as alterações. Isso permitirá o uso do **Método 1 (OTP)**, que é 100% à prova de falhas de scanners de e-mail e restrições do iOS.
+
+#### Exemplos de entrada aceitos pelo campo secreto:
+* **Código OTP de 6 dígitos:**
+  `123456`
 * **Link de verificação (Direto do e-mail):**
   `https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=dd5f7b06fef22621c3027a256b310e75a15c211c3af8d04627604d42&type=magiclink&redirect_to=https://salgado-finance-app.com.br/login`
 * **Link de redirecionamento final (Contendo hash de sessão):**

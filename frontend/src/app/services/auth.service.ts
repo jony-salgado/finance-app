@@ -33,6 +33,7 @@ export class AuthService {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
+        flowType: 'implicit' as const,
       },
     };
 
@@ -267,6 +268,34 @@ export class AuthService {
       }
     } catch (err) {
       // Suppress fallback errors to return the primary SDK error
+    }
+
+    throw lastError || new Error('Auth verification failed.');
+  }
+
+  /**
+   * Verifies a 6-digit numeric OTP code using email and code.
+   */
+  async verifyOtpCode(email: string, token: string, type: any): Promise<void> {
+    const typesToTry = [type, 'email', 'magiclink', 'signup'];
+    let lastError: any = null;
+
+    for (const t of typesToTry) {
+      if (!t) continue;
+      try {
+        const { data, error } = await this.supabase.auth.verifyOtp({
+          email,
+          token,
+          type: t as any,
+        });
+        if (!error && data && data.session) {
+          this.sessionState.set(data.session);
+          return;
+        }
+        if (error) lastError = error;
+      } catch (err) {
+        lastError = err;
+      }
     }
 
     throw lastError || new Error('Auth verification failed.');

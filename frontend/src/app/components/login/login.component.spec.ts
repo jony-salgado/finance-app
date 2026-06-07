@@ -14,6 +14,7 @@ const mockAuthService = {
   signInWithOtp: jest.fn(),
   setSession: jest.fn(),
   verifyOtp: jest.fn(),
+  verifyOtpCode: jest.fn(),
   bypassLogin: jest.fn(),
   onAuthStateChange: jest.fn().mockReturnValue({
     data: {
@@ -177,6 +178,51 @@ describe('LoginComponent Unit Tests', () => {
     expect(mockAuthService.verifyOtp).toHaveBeenCalledWith('dd5f7b06fef', 'magiclink');
     expect(component.successMessage()).toBeNull();
     expect(component.errorMessage()).toBe('Otp failed');
+  });
+
+  it('should set error message if 6-digit OTP is pasted but email is missing', async () => {
+    component.email.set('');
+    component.pastedUrl.set('123456');
+    await component.onInjectToken();
+
+    expect(mockAuthService.verifyOtpCode).not.toHaveBeenCalled();
+    expect(component.errorMessage()).toBe(
+      'Por favor, insira o seu e-mail no campo acima antes de verificar o código de 6 dígitos.',
+    );
+    expect(component.successMessage()).toBeNull();
+  });
+
+  it('should call verifyOtpCode and redirect if 6-digit OTP is valid', async () => {
+    mockAuthService.verifyOtpCode.mockResolvedValue(undefined);
+    component.email.set('user@example.com');
+    component.pastedUrl.set('123456');
+    await component.onInjectToken();
+
+    expect(mockAuthService.verifyOtpCode).toHaveBeenCalledWith(
+      'user@example.com',
+      '123456',
+      'email',
+    );
+    expect(component.successMessage()).toBe('Sessão verificada com sucesso! Redirecionando...');
+    expect(component.errorMessage()).toBeNull();
+
+    jest.runAllTimers();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
+  it('should handle verifyOtpCode failure', async () => {
+    mockAuthService.verifyOtpCode.mockRejectedValue(new Error('Invalid code'));
+    component.email.set('user@example.com');
+    component.pastedUrl.set('123456');
+    await component.onInjectToken();
+
+    expect(mockAuthService.verifyOtpCode).toHaveBeenCalledWith(
+      'user@example.com',
+      '123456',
+      'email',
+    );
+    expect(component.errorMessage()).toBe('Invalid code');
+    expect(component.successMessage()).toBeNull();
   });
 
   it('should call authService.bypassLogin successfully and redirect to dashboard', async () => {
