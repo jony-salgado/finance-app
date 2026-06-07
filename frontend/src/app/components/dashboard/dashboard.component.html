@@ -147,9 +147,9 @@
             @if (!transactionForm().isBillPayment) {
               <div>
                 <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Category</label>
-                <select required [value]="transactionForm().category" (change)="updateForm('category', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                  <option value="" disabled>Select...</option>
-                  @for (c of categories(); track c.id) { @if (c.type === transactionForm().type) { <option [value]="c.id">{{c.name}}</option> } }
+                <select required (change)="updateForm('category', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                  <option value="" disabled [selected]="!transactionForm().category">Select...</option>
+                  @for (c of categories(); track c.id) { @if (c.type === transactionForm().type) { <option [value]="c.id" [selected]="c.id === transactionForm().category">{{c.name}}</option> } }
                 </select>
               </div>
             }
@@ -157,9 +157,9 @@
               <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                 {{ transactionForm().isBillPayment ? 'Origin Account (Checking)' : 'Account/Card' }}
               </label>
-              <select required [value]="transactionForm().account" (change)="updateForm('account', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                <option value="" disabled>Select...</option>
-                @for (c of (transactionForm().isBillPayment ? debitAccounts() : accounts()); track c.id) { <option [value]="c.id">{{c.name}}</option> }
+              <select required (change)="updateForm('account', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                <option value="" disabled [selected]="!transactionForm().account">Select...</option>
+                @for (c of (transactionForm().isBillPayment ? debitAccounts() : accounts()); track c.id) { <option [value]="c.id" [selected]="c.id === transactionForm().account">{{c.name}}</option> }
               </select>
             </div>
           </div>
@@ -179,10 +179,10 @@
             @if (transactionForm().isEstorno) {
               <div class="pl-7 pt-1 animate-in slide-in-from-top-2">
                 <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Target Credit Card</label>
-                <select required [value]="transactionForm().estornoCardId" (change)="updateForm('estornoCardId', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-medium">
-                  <option value="" disabled>Select Card...</option>
+                <select required (change)="updateForm('estornoCardId', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-medium">
+                  <option value="" disabled [selected]="!transactionForm().estornoCardId">Select Card...</option>
                   @for (card of creditCards(); track card.id) {
-                    <option [value]="card.id">{{card.name}}</option>
+                    <option [value]="card.id" [selected]="card.id === transactionForm().estornoCardId">{{card.name}}</option>
                   }
                 </select>
               </div>
@@ -202,10 +202,10 @@
               @if (transactionForm().isBillPayment) {
                 <div class="pl-7 pt-1 animate-in slide-in-from-top-2">
                   <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Paid Credit Card</label>
-                  <select required [value]="transactionForm().billPaymentCardId" (change)="updateForm('billPaymentCardId', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-medium">
-                    <option value="" disabled>Select Card...</option>
+                  <select required (change)="updateForm('billPaymentCardId', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-medium">
+                    <option value="" disabled [selected]="!transactionForm().billPaymentCardId">Select Card...</option>
                     @for (card of creditCards(); track card.id) {
-                      <option [value]="card.id">{{card.name}}</option>
+                      <option [value]="card.id" [selected]="card.id === transactionForm().billPaymentCardId">{{card.name}}</option>
                     }
                   </select>
                 </div>
@@ -383,10 +383,10 @@
         <form (submit)="$event.preventDefault(); confirmBillPayment()" class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">From which account did the money come?</label>
-            <select required [value]="billSourceAccount()" (change)="billSourceAccount.set($any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-indigo-100 outline-none">
-              <option value="" disabled>Select an account...</option>
+            <select required (change)="billSourceAccount.set($any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-indigo-100 outline-none">
+              <option value="" disabled [selected]="!billSourceAccount()">Select an account...</option>
               @for (c of debitAccounts(); track c.id) {
-                <option [value]="c.id">{{c.name}}</option>
+                <option [value]="c.id" [selected]="c.id === billSourceAccount()">{{c.name}}</option>
               }
             </select>
           </div>
