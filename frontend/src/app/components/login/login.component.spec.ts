@@ -187,7 +187,7 @@ describe('LoginComponent Unit Tests', () => {
 
     expect(mockAuthService.verifyOtpCode).not.toHaveBeenCalled();
     expect(component.errorMessage()).toBe(
-      'Por favor, insira o seu e-mail no campo acima antes de verificar o código de 6 dígitos.',
+      'Por favor, insira o seu e-mail no campo acima antes de verificar o código.',
     );
     expect(component.successMessage()).toBeNull();
   });
@@ -223,6 +223,24 @@ describe('LoginComponent Unit Tests', () => {
     );
     expect(component.errorMessage()).toBe('Invalid code');
     expect(component.successMessage()).toBeNull();
+  });
+
+  it('should call verifyOtpCode and redirect if 8-digit OTP is valid', async () => {
+    mockAuthService.verifyOtpCode.mockResolvedValue(undefined);
+    component.email.set('user@example.com');
+    component.pastedUrl.set('85109143');
+    await component.onInjectToken();
+
+    expect(mockAuthService.verifyOtpCode).toHaveBeenCalledWith(
+      'user@example.com',
+      '85109143',
+      'email',
+    );
+    expect(component.successMessage()).toBe('Sessão verificada com sucesso! Redirecionando...');
+    expect(component.errorMessage()).toBeNull();
+
+    jest.runAllTimers();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 
   it('should call authService.bypassLogin successfully and redirect to dashboard', async () => {

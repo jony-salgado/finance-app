@@ -159,12 +159,12 @@ export class LoginComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Case 2: Pasted string is a 6-digit numeric OTP code
-      const isOtpCode = /^\d{6}$/.test(text);
+      // Case 2: Pasted string is a numeric OTP code (typically 6 to 10 digits)
+      const isOtpCode = /^\d{6,10}$/.test(text);
       if (isOtpCode) {
         if (!this.email()) {
           this.errorMessage.set(
-            'Por favor, insira o seu e-mail no campo acima antes de verificar o código de 6 dígitos.',
+            'Por favor, insira o seu e-mail no campo acima antes de verificar o código.',
           );
           this.loading.set(false);
           return;
