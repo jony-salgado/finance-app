@@ -212,4 +212,22 @@ describe('LoginComponent Unit Tests', () => {
 
     expect(mockUnsubscribe).toHaveBeenCalled();
   });
+
+  it('should initialize with showManualLogin false', () => {
+    expect(component.showManualLogin()).toBe(false);
+  });
+
+  it('should show manual login after 5 logo clicks', () => {
+    expect(component.showManualLogin()).toBe(false);
+
+    // 4 clicks: should still be false
+    for (let i = 0; i < 4; i++) {
+      component.onLogoClick();
+    }
+    expect(component.showManualLogin()).toBe(false);
+
+    // 5th click: should become true
+    component.onLogoClick();
+    expect(component.showManualLogin()).toBe(true);
+  });
 });

@@ -46,6 +46,16 @@ export class LoginComponent implements OnInit, OnDestroy {
   loading = signal(false);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
+  showManualLogin = signal(false);
+
+  private logoClickCount = 0;
+
+  onLogoClick() {
+    this.logoClickCount++;
+    if (this.logoClickCount >= 5) {
+      this.showManualLogin.set(true);
+    }
+  }
 
   /**
    * Parses the access_token and refresh_token from the pasted URL or string.

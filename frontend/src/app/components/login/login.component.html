@@ -7,8 +7,8 @@
   <!-- Main Login Card -->
   <div class="w-full max-w-md bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-10 shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-500">
     
-    <!-- Logo Header -->
-    <div class="flex flex-col items-center mb-8 text-center">
+    <!-- Logo Header (Secret toggle on 5 clicks) -->
+    <div (click)="onLogoClick()" class="flex flex-col items-center mb-8 text-center cursor-pointer select-none">
       <div class="w-16 h-16 mb-4 animate-bounce">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
           <rect width="512" height="512" rx="128" fill="#4c1d95"/>
@@ -75,6 +75,38 @@
         }
       </button>
     </form>
+
+    <!-- Hidden Manual Login for PWA / iOS Magic Link fallback -->
+    @if (showManualLogin()) {
+      <div class="mt-8 pt-6 border-t border-dashed border-indigo-500/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="ph ph-link-simple text-indigo-400 text-lg"></i>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Entrar Manualmente via Link</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">
+          Cole o link completo do Magic Link recebido no seu e-mail para fazer o login no Web App.
+        </p>
+        <div class="space-y-3">
+          <textarea
+            id="pasted-magic-link"
+            [disabled]="loading()"
+            [value]="pastedUrl()"
+            (input)="pastedUrl.set($any($event.target).value)"
+            placeholder="Cole o link do e-mail aqui (ex: https://...#access_token=...)"
+            class="w-full h-20 bg-black/40 border border-indigo-500/20 rounded-xl p-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all font-mono resize-none"></textarea>
+          
+          <button
+            type="button"
+            id="btn-entrar-com-link"
+            [disabled]="loading() || !pastedUrl().trim()"
+            (click)="onInjectToken()"
+            class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 transition-all hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
+            <i class="ph ph-sign-in text-base"></i>
+            <span>Entrar com o Link</span>
+          </button>
+        </div>
+      </div>
+    }
 
     <!-- Dev Helper / Debug Mode (Codespaces Helper) -->
     @if (!environment.production) {
