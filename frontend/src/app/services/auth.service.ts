@@ -221,6 +221,25 @@ export class AuthService {
   }
 
   /**
+   * Verifies an OTP token (like from a verification email link) and establishes a session.
+   */
+  async verifyOtp(email: string, token: string, type: any): Promise<void> {
+    const { data, error } = await this.supabase.auth.verifyOtp({
+      email,
+      token,
+      type,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (data && data.session) {
+      this.sessionState.set(data.session);
+    }
+  }
+
+  /**
    * Listen to authentication state changes.
    */
   onAuthStateChange(callback: (event: any, session: Session | null) => void) {

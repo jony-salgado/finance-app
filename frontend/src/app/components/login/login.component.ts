@@ -101,29 +101,73 @@ export class LoginComponent implements OnInit, OnDestroy {
     };
   }
 
+  private parseOtp(pastedText: string): {
+    token: string | null;
+    type: string | null;
+  } {
+    let cleanText = pastedText.trim();
+    try {
+      if (!cleanText.startsWith('http://') && !cleanText.startsWith('https://')) {
+        cleanText = 'http://localhost/' + (cleanText.startsWith('?') ? cleanText : '?' + cleanText);
+      }
+      const urlObj = new URL(cleanText);
+      const params = new URLSearchParams(urlObj.search);
+      const token = params.get('token');
+      const type = params.get('type');
+      if (token && type) {
+        return { token, type };
+      }
+    } catch (e) {
+      // Ignore URL parsing errors
+    }
+
+    const tokenMatch = cleanText.match(/token=([^&]+)/);
+    const typeMatch = cleanText.match(/type=([^&]+)/);
+    return {
+      token: tokenMatch ? tokenMatch[1] : null,
+      type: typeMatch ? typeMatch[1] : null,
+    };
+  }
+
   async onInjectToken() {
     const text = this.pastedUrl().trim();
     if (!text) {
-      this.errorMessage.set('Please paste a valid Supabase Redirect URL or token string.');
+      this.errorMessage.set('Por favor, cole um link ou token válido.');
       return;
     }
 
-    const { accessToken, refreshToken } = this.parseTokens(text);
-
-    if (!accessToken || !refreshToken) {
-      this.errorMessage.set(
-        'Could not extract access_token and refresh_token from the provided text.',
-      );
-      return;
-    }
+    const otp = this.parseOtp(text);
 
     this.loading.set(true);
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
     try {
-      await this.authService.setSession(accessToken, refreshToken);
-      this.successMessage.set('Session injected successfully! Redirecting...');
+      if (otp.token && otp.type) {
+        // Case 1: Verification link from email (OTP token + type)
+        if (!this.email()) {
+          this.errorMessage.set(
+            'Por favor, preencha o campo de e-mail antes de entrar com o link.',
+          );
+          this.loading.set(false);
+          return;
+        }
+        await this.authService.verifyOtp(this.email().trim(), otp.token, otp.type);
+        this.successMessage.set('Sessão verificada com sucesso! Redirecionando...');
+      } else {
+        // Case 2: Redirect URL containing access_token & refresh_token
+        const { accessToken, refreshToken } = this.parseTokens(text);
+        if (!accessToken || !refreshToken) {
+          this.errorMessage.set(
+            'Não foi possível extrair os tokens de acesso ou verificação do texto fornecido.',
+          );
+          this.loading.set(false);
+          return;
+        }
+        await this.authService.setSession(accessToken, refreshToken);
+        this.successMessage.set('Sessão iniciada com sucesso! Redirecionando...');
+      }
+
       this.pastedUrl.set('');
       setTimeout(() => {
         this.router.navigate(['/dashboard']);
@@ -131,7 +175,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     } catch (err: any) {
       console.error(err);
       this.errorMessage.set(
-        err.message || 'Failed to manually set session. Please check your tokens.',
+        err.message || 'Falha ao autenticar. Por favor, verifique o link fornecido.',
       );
     } finally {
       this.loading.set(false);

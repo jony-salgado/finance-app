@@ -13,6 +13,7 @@ jest.mock('@angular/router', () => ({
 const mockAuthService = {
   signInWithOtp: jest.fn(),
   setSession: jest.fn(),
+  verifyOtp: jest.fn(),
   bypassLogin: jest.fn(),
   onAuthStateChange: jest.fn().mockReturnValue({
     data: {
@@ -110,19 +111,19 @@ describe('LoginComponent Unit Tests', () => {
   it('should set error message if pastedUrl is empty on token injection', async () => {
     component.pastedUrl.set('');
     await component.onInjectToken();
-    expect(component.errorMessage()).toBe(
-      'Please paste a valid Supabase Redirect URL or token string.',
-    );
+    expect(component.errorMessage()).toBe('Por favor, cole um link ou token válido.');
     expect(mockAuthService.setSession).not.toHaveBeenCalled();
+    expect(mockAuthService.verifyOtp).not.toHaveBeenCalled();
   });
 
   it('should set error message if access_token or refresh_token is missing', async () => {
     component.pastedUrl.set('http://localhost:4200/#access_token=123');
     await component.onInjectToken();
     expect(component.errorMessage()).toBe(
-      'Could not extract access_token and refresh_token from the provided text.',
+      'Não foi possível extrair os tokens de acesso ou verificação do texto fornecido.',
     );
     expect(mockAuthService.setSession).not.toHaveBeenCalled();
+    expect(mockAuthService.verifyOtp).not.toHaveBeenCalled();
   });
 
   it('should extract tokens and call setSession successfully', async () => {
@@ -131,7 +132,7 @@ describe('LoginComponent Unit Tests', () => {
     await component.onInjectToken();
 
     expect(mockAuthService.setSession).toHaveBeenCalledWith('abc', 'xyz');
-    expect(component.successMessage()).toBe('Session injected successfully! Redirecting...');
+    expect(component.successMessage()).toBe('Sessão iniciada com sucesso! Redirecionando...');
     expect(component.errorMessage()).toBeNull();
 
     // Trigger fake timers to check navigation
@@ -148,6 +149,57 @@ describe('LoginComponent Unit Tests', () => {
     expect(component.successMessage()).toBeNull();
     expect(component.errorMessage()).toBe('Invalid token');
     expect(component.loading()).toBe(false);
+  });
+
+  it('should call verifyOtp when pasted URL contains token and type parameters', async () => {
+    mockAuthService.verifyOtp.mockResolvedValue(undefined);
+    component.email.set('user@example.com');
+    component.pastedUrl.set(
+      'https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=dd5f7b06fef&type=magiclink',
+    );
+    await component.onInjectToken();
+
+    expect(mockAuthService.verifyOtp).toHaveBeenCalledWith(
+      'user@example.com',
+      'dd5f7b06fef',
+      'magiclink',
+    );
+    expect(component.successMessage()).toBe('Sessão verificada com sucesso! Redirecionando...');
+    expect(component.errorMessage()).toBeNull();
+
+    // Trigger fake timers to check navigation
+    jest.runAllTimers();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
+  it('should set error message if verifyOtp fails', async () => {
+    mockAuthService.verifyOtp.mockRejectedValue(new Error('Otp failed'));
+    component.email.set('user@example.com');
+    component.pastedUrl.set(
+      'https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=dd5f7b06fef&type=magiclink',
+    );
+    await component.onInjectToken();
+
+    expect(mockAuthService.verifyOtp).toHaveBeenCalledWith(
+      'user@example.com',
+      'dd5f7b06fef',
+      'magiclink',
+    );
+    expect(component.successMessage()).toBeNull();
+    expect(component.errorMessage()).toBe('Otp failed');
+  });
+
+  it('should set error message if verifyOtp is triggered but email is empty', async () => {
+    component.email.set('');
+    component.pastedUrl.set(
+      'https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=dd5f7b06fef&type=magiclink',
+    );
+    await component.onInjectToken();
+
+    expect(mockAuthService.verifyOtp).not.toHaveBeenCalled();
+    expect(component.errorMessage()).toBe(
+      'Por favor, preencha o campo de e-mail antes de entrar com o link.',
+    );
   });
 
   it('should call authService.bypassLogin successfully and redirect to dashboard', async () => {
