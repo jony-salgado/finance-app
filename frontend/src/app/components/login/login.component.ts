@@ -144,15 +144,8 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     try {
       if (otp.token && otp.type) {
-        // Case 1: Verification link from email (OTP token + type)
-        if (!this.email()) {
-          this.errorMessage.set(
-            'Por favor, preencha o campo de e-mail antes de entrar com o link.',
-          );
-          this.loading.set(false);
-          return;
-        }
-        await this.authService.verifyOtp(this.email().trim(), otp.token, otp.type);
+        // Case 1: Verification link from email (OTP token_hash + type)
+        await this.authService.verifyOtp(otp.token, otp.type);
         this.successMessage.set('Sessão verificada com sucesso! Redirecionando...');
       } else {
         // Case 2: Redirect URL containing access_token & refresh_token

@@ -153,17 +153,12 @@ describe('LoginComponent Unit Tests', () => {
 
   it('should call verifyOtp when pasted URL contains token and type parameters', async () => {
     mockAuthService.verifyOtp.mockResolvedValue(undefined);
-    component.email.set('user@example.com');
     component.pastedUrl.set(
       'https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=dd5f7b06fef&type=magiclink',
     );
     await component.onInjectToken();
 
-    expect(mockAuthService.verifyOtp).toHaveBeenCalledWith(
-      'user@example.com',
-      'dd5f7b06fef',
-      'magiclink',
-    );
+    expect(mockAuthService.verifyOtp).toHaveBeenCalledWith('dd5f7b06fef', 'magiclink');
     expect(component.successMessage()).toBe('Sessão verificada com sucesso! Redirecionando...');
     expect(component.errorMessage()).toBeNull();
 
@@ -174,32 +169,14 @@ describe('LoginComponent Unit Tests', () => {
 
   it('should set error message if verifyOtp fails', async () => {
     mockAuthService.verifyOtp.mockRejectedValue(new Error('Otp failed'));
-    component.email.set('user@example.com');
     component.pastedUrl.set(
       'https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=dd5f7b06fef&type=magiclink',
     );
     await component.onInjectToken();
 
-    expect(mockAuthService.verifyOtp).toHaveBeenCalledWith(
-      'user@example.com',
-      'dd5f7b06fef',
-      'magiclink',
-    );
+    expect(mockAuthService.verifyOtp).toHaveBeenCalledWith('dd5f7b06fef', 'magiclink');
     expect(component.successMessage()).toBeNull();
     expect(component.errorMessage()).toBe('Otp failed');
-  });
-
-  it('should set error message if verifyOtp is triggered but email is empty', async () => {
-    component.email.set('');
-    component.pastedUrl.set(
-      'https://aoszuzhweogqpfveitji.supabase.co/auth/v1/verify?token=dd5f7b06fef&type=magiclink',
-    );
-    await component.onInjectToken();
-
-    expect(mockAuthService.verifyOtp).not.toHaveBeenCalled();
-    expect(component.errorMessage()).toBe(
-      'Por favor, preencha o campo de e-mail antes de entrar com o link.',
-    );
   });
 
   it('should call authService.bypassLogin successfully and redirect to dashboard', async () => {

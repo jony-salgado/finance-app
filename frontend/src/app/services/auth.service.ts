@@ -221,13 +221,12 @@ export class AuthService {
   }
 
   /**
-   * Verifies an OTP token (like from a verification email link) and establishes a session.
+   * Verifies an OTP token hash (like from a verification email link) and establishes a session.
    */
-  async verifyOtp(email: string, token: string, type: any): Promise<void> {
+  async verifyOtp(tokenHash: string, type: any): Promise<void> {
     const { data, error } = await this.supabase.auth.verifyOtp({
-      email,
-      token,
-      type,
+      token_hash: tokenHash,
+      type: type,
     });
 
     if (error) {
