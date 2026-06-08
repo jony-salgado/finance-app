@@ -685,17 +685,26 @@ export class DashboardComponent implements OnInit {
           : '';
 
       const isBillPayment = t.type === 'credit_card_payment';
-      const billPaymentCardId = isBillPayment
-        ? t.destinationAccount || t.destination_account_id
-        : '';
+      let billPaymentCardId = '';
+      let originalType = t.type;
+      const formAccount = t.account || t.account_id || '';
+
+      if (isBillPayment) {
+        const acc = this.accounts().find((a) => a.id === formAccount);
+        if (acc && acc.type === 'credit_card') {
+          originalType = 'income';
+          billPaymentCardId = t.sourceAccount || t.source_account_id || '';
+        } else {
+          originalType = 'expense';
+          billPaymentCardId = t.destinationAccount || t.destination_account_id || '';
+        }
+      }
 
       this.transactionForm.set({
         ...t,
+        type: originalType,
         category: t.category || t.category_id || '',
-        account:
-          t.account ||
-          t.account_id ||
-          (isBillPayment ? t.sourceAccount || t.source_account_id : ''),
+        account: formAccount,
         spendingGroup: t.spendingGroup || 'weekly',
         isEstorno: hasEstorno,
         estornoCardId: estornoCardId || '',
@@ -758,13 +767,18 @@ export class DashboardComponent implements OnInit {
     // Handle Bill Payment
     if (form.isBillPayment) {
       form.type = 'credit_card_payment';
-      form.sourceAccount = form.account;
-      form.destinationAccount = form.billPaymentCardId;
+      if (this.transactionForm().type === 'income') {
+        form.destinationAccount = form.account;
+        form.sourceAccount = form.billPaymentCardId;
+      } else {
+        form.sourceAccount = form.account;
+        form.destinationAccount = form.billPaymentCardId;
+      }
       form.category = '';
       form.referenceMonth = String(form.date).substring(0, 7);
     } else {
       if (form.type === 'credit_card_payment') {
-        form.type = 'expense';
+        form.type = this.transactionForm().type || 'expense';
       }
       form.sourceAccount = undefined;
       form.destinationAccount = undefined;
@@ -926,17 +940,6 @@ export class DashboardComponent implements OnInit {
     });
 
     let billAmount = Math.max(0, totalExpenses - totalIncomes);
-
-    // If it's the current month and the card is linked to Pluggy, use the real-time balance
-    const currentCalendarMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-    if (
-      card.providerId === 'pluggy' &&
-      this.currentMonthYear() === currentCalendarMonth &&
-      card.initialBalance !== undefined &&
-      card.initialBalance !== null
-    ) {
-      billAmount = Math.max(0, card.initialBalance - estornosAmount);
-    }
 
     const today = new Date();
     let status = 'open';

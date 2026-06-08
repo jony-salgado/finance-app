@@ -17,10 +17,10 @@
       </div>
       <span class="text-2xl font-bold tracking-tight text-indigo-600">FinanceApp</span>
     </div>
-    <div class="flex md:flex-col w-full justify-around md:justify-start gap-1 overflow-x-auto md:overflow-visible">
+    <div class="flex md:flex-col w-full justify-between md:justify-start gap-0.5 md:gap-1 md:overflow-visible">
       @for (tab of menuTabs; track tab.id) {
         <button (click)="selectTab($any(tab.id))"
-          class="flex flex-col md:flex-row items-center gap-1 md:gap-3 p-2 md:p-3 rounded-xl transition min-w-[64px]"
+          class="flex-1 flex flex-col md:flex-row items-center gap-0.5 md:gap-3 p-1 md:p-3 rounded-xl transition md:min-w-[64px]"
           [class.text-indigo-600]="activeTab() === tab.id" [class.md:bg-indigo-50]="activeTab() === tab.id"
           [class.text-slate-400]="activeTab() !== tab.id" [class.hover:text-slate-600]="activeTab() !== tab.id" [class.md:hover:bg-slate-100]="activeTab() !== tab.id">
           <i [class]="tab.icon + ' text-2xl ' + (activeTab() === tab.id ? 'ph-fill' : '')"></i>
@@ -170,11 +170,13 @@
             }
             <div>
               <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                {{ transactionForm().isBillPayment ? 'Origin Account (Checking)' : 'Account/Card' }}
+                {{ transactionForm().isBillPayment ? (transactionForm().type === 'income' ? 'Paid Credit Card' : 'Origin Account (Checking)') : 'Account/Card' }}
               </label>
               <select required (change)="updateForm('account', $any($event.target).value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100">
                 <option value="" disabled [selected]="!transactionForm().account">Select...</option>
-                @for (c of (transactionForm().isBillPayment ? debitAccounts() : accounts()); track c.id) { <option [value]="c.id" [selected]="c.id === transactionForm().account">{{c.name}}</option> }
+                @for (c of (transactionForm().isBillPayment ? (transactionForm().type === 'income' ? creditCards() : debitAccounts()) : accounts()); track c.id) {
+                  <option [value]="c.id" [selected]="c.id === transactionForm().account">{{c.name}}</option>
+                }
               </select>
             </div>
           </div>
@@ -203,8 +205,8 @@
               </div>
             }
 
-            <!-- Invoice Payment Checkbox (only if type is expense) -->
-            @if (transactionForm().type === 'expense') {
+            <!-- Invoice Payment Checkbox (if type is expense or income) -->
+            @if (transactionForm().type === 'expense' || transactionForm().type === 'income') {
               <label class="flex items-start gap-3 cursor-pointer pt-2 border-t border-slate-200">
                 <input type="checkbox" [checked]="transactionForm().isBillPayment" (change)="updateForm('isBillPayment', $any($event.target).checked)" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 mt-0.5" />
                 <div class="flex flex-col">
@@ -213,14 +215,22 @@
                 </div>
               </label>
 
-              <!-- Paid Card Selector (if Bill Payment is checked) -->
+              <!-- Paid Card / Origin Account Selector (if Bill Payment is checked) -->
               @if (transactionForm().isBillPayment) {
                 <div class="pl-7 pt-1 animate-in slide-in-from-top-2">
-                  <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Paid Credit Card</label>
+                  <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">
+                    {{ transactionForm().type === 'income' ? 'Origin Account (Checking)' : 'Paid Credit Card' }}
+                  </label>
                   <select required (change)="updateForm('billPaymentCardId', $any($event.target).value)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-100 focus:outline-none font-medium">
-                    <option value="" disabled [selected]="!transactionForm().billPaymentCardId">Select Card...</option>
-                    @for (card of creditCards(); track card.id) {
-                      <option [value]="card.id" [selected]="card.id === transactionForm().billPaymentCardId">{{card.name}}</option>
+                    <option value="" disabled [selected]="!transactionForm().billPaymentCardId">Select...</option>
+                    @if (transactionForm().type === 'income') {
+                      @for (acc of debitAccounts(); track acc.id) {
+                        <option [value]="acc.id" [selected]="acc.id === transactionForm().billPaymentCardId">{{acc.name}}</option>
+                      }
+                    } @else {
+                      @for (card of creditCards(); track card.id) {
+                        <option [value]="card.id" [selected]="card.id === transactionForm().billPaymentCardId">{{card.name}}</option>
+                      }
                     }
                   </select>
                 </div>

@@ -1,13 +1,29 @@
 <div class="space-y-6 animate-in fade-in duration-300">
-  <!-- Date Header -->
-  <div class="flex items-center gap-2 text-sm font-semibold text-slate-500">
-    <i class="ph ph-calendar text-lg"></i>
-    <span>{{ parent().weekOffset() === 0 ? 'Semana Atual' : 'Semana' }}: {{ parent().formattedWeekRange() }}</span>
-    @if (parent().weekOffset() !== 0) {
-      <span class="px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-full animate-in zoom-in-95">
-        {{ parent().weekOffset() > 0 ? '+' + parent().weekOffset() + ' sem' : parent().weekOffset() + ' sem' }}
-      </span>
-    }
+  <!-- Date Header & Week Switcher -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+    <div class="flex items-center gap-2 text-sm font-semibold text-slate-500">
+      <i class="ph ph-calendar text-lg"></i>
+      <span>{{ parent().weekOffset() === 0 ? 'Semana Atual' : 'Semana' }}: {{ parent().formattedWeekRange() }}</span>
+      @if (parent().weekOffset() !== 0) {
+        <span class="px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-full animate-in zoom-in-95">
+          {{ parent().weekOffset() > 0 ? '+' + parent().weekOffset() + ' sem' : parent().weekOffset() + ' sem' }}
+        </span>
+      }
+    </div>
+    
+    <div class="flex items-center gap-1.5 self-start sm:self-auto bg-slate-50 p-1 rounded-xl border border-slate-100">
+      <button (click)="parent().changeWeek(-1)" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg transition" title="Semana Anterior">
+        <i class="ph ph-caret-left text-base"></i>
+      </button>
+      <button (click)="parent().changeWeek(0)" [disabled]="parent().weekOffset() === 0" 
+              class="px-2.5 py-1 text-xs font-bold rounded-lg transition" 
+              [class]="parent().weekOffset() === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-indigo-600 hover:bg-white bg-indigo-50/50'">
+        Hoje
+      </button>
+      <button (click)="parent().changeWeek(1)" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg transition" title="Próxima Semana">
+        <i class="ph ph-caret-right text-base"></i>
+      </button>
+    </div>
   </div>
 
   <!-- Row 1: Indicators Grid spanning full width -->
