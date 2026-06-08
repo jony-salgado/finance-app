@@ -274,4 +274,105 @@ describe('DashboardComponent Unit Tests', () => {
     mockFinanceService.categories = originalCategories;
     mockFinanceService.iconMap = originalIconMap;
   });
+
+  it('should compute weekly transactions and subtract refunds (estornos) correctly', () => {
+    const originalGlobalTransactions = mockFinanceService.globalTransactions;
+    const originalAccounts = mockFinanceService.accounts;
+    const originalCategories = mockFinanceService.categories;
+    const originalIconMap = mockFinanceService.iconMap;
+
+    const today = new Date();
+    const day = today.getDay();
+    const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today.getFullYear(), today.getMonth(), diffToMonday);
+
+    const tDate = (offsetDays: number) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + offsetDays);
+      return d.toISOString().split('T')[0];
+    };
+
+    mockFinanceService.iconMap = {
+      utensils: 'ph-fork-knife',
+    } as any;
+    mockFinanceService.accounts = () => [
+      { id: 'acc-1', name: 'Banco do Brasil', type: 'checking', initialBalance: 1000.0 } as any,
+    ];
+    mockFinanceService.categories = () => [
+      {
+        id: 'cat-1',
+        name: 'Alimentação',
+        color: 'text-red-600',
+        cardColor: '#ff0000',
+        iconName: 'utensils',
+      } as any,
+    ];
+    mockFinanceService.globalTransactions = () => [
+      {
+        id: 'w1',
+        description: 'Mercado',
+        amount: 100.0,
+        type: 'expense',
+        date: tDate(1), // Tuesday
+        category: 'cat-1',
+        account: 'acc-1',
+      } as any,
+      {
+        id: 'w2',
+        description: 'Estorno Mercado',
+        amount: 30.0,
+        type: 'expense',
+        date: tDate(2), // Wednesday
+        category: 'cat-1',
+        account: 'acc-1',
+        tags: ['estorno'],
+      } as any,
+      {
+        id: 'w3',
+        description: 'Aluguel',
+        amount: 50.0,
+        type: 'expense',
+        date: tDate(3), // Thursday
+        category: 'cat-1',
+        account: 'acc-1',
+        spendingGroup: 'fixed',
+      } as any,
+      {
+        id: 'w4',
+        description: 'Estorno Aluguel',
+        amount: 10.0,
+        type: 'expense',
+        date: tDate(4), // Friday
+        category: 'cat-1',
+        account: 'acc-1',
+        spendingGroup: 'fixed',
+        tags: ['estorno'],
+      } as any,
+    ];
+
+    const testComponent = new DashboardComponent();
+    testComponent.weekOffset.set(0);
+
+    const txns = testComponent.weeklyTransactions();
+    expect(txns.length).toBe(4);
+
+    expect(testComponent.weeklyExpensesTotal()).toBe(110.0);
+    expect(testComponent.weeklyExpensesWeeklyTotal()).toBe(70.0);
+    expect(testComponent.weeklyExpensesFixedTotal()).toBe(40.0);
+    expect(testComponent.weeklyExpensesEmergencyTotal()).toBe(0.0);
+
+    const displayTxs = testComponent.displayWeeklyTransactions();
+    expect(displayTxs.length).toBe(4);
+
+    const refundWeekly = displayTxs.find((t) => t.id === 'w2');
+    expect(refundWeekly).toBeDefined();
+    expect(refundWeekly?.isEstorno).toBe(true);
+    expect(refundWeekly?.isExpense).toBe(false);
+
+    // Restore original mock values
+    mockFinanceService.globalTransactions = originalGlobalTransactions;
+    mockFinanceService.accounts = originalAccounts;
+    mockFinanceService.categories = originalCategories;
+    mockFinanceService.iconMap = originalIconMap;
+  });
 });

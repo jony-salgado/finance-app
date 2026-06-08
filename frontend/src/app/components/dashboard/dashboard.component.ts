@@ -226,22 +226,45 @@ export class DashboardComponent implements OnInit {
     const bill = this.getBillSummary(card);
     const openingDate = bill.openingDate;
     const closingDate = bill.closingDate;
+    const dueDate = bill.dueDate;
 
     return this.globalTransactions()
       .filter((t) => {
+        const hasEstornoTag =
+          (t.tags && t.tags.includes('estorno')) ||
+          (t.description && t.description.toLowerCase().includes('estorno'));
+
         // 1. Is it a bill payment for this card?
+        let isBillPayment = false;
         if (
           t.type === 'credit_card_payment' &&
           (t.destinationAccount === cardId || (t as any).destination_account_id === cardId)
         ) {
-          return t.referenceMonth === this.currentMonthYear();
+          isBillPayment = t.referenceMonth === this.currentMonthYear();
+        } else if (
+          (t.account === cardId || (t as any).account_id === cardId) &&
+          t.type === 'income' &&
+          !hasEstornoTag
+        ) {
+          if (t.referenceMonth) {
+            isBillPayment = t.referenceMonth === this.currentMonthYear();
+          } else {
+            const dateT = new Date(t.date + 'T12:00:00');
+            const windowStart = new Date(closingDate);
+            windowStart.setDate(closingDate.getDate() - 5);
+            const windowEnd = new Date(dueDate);
+            windowEnd.setDate(dueDate.getDate() + 5);
+            isBillPayment = dateT >= windowStart && dateT <= windowEnd;
+          }
         }
 
+        if (isBillPayment) return true;
+
         // 2. Is it a refund (estorno) for this card?
-        const hasEstornoTag = t.tags && t.tags.includes('estorno');
         const cardTag = t.tags && t.tags.find((tag: string) => tag.startsWith('estorno_card:'));
         const targetCardId = cardTag ? cardTag.split(':')[1] : t.account || (t as any).account_id;
-        if (hasEstornoTag && targetCardId === cardId) {
+        const isEstornoForThisCard = hasEstornoTag && targetCardId === cardId;
+        if (isEstornoForThisCard) {
           const dateT = new Date(t.date + 'T12:00:00');
           return (
             (dateT >= openingDate && dateT < closingDate) ||
@@ -261,11 +284,37 @@ export class DashboardComponent implements OnInit {
         return false;
       })
       .map((t) => {
-        const isBill = t.type === 'credit_card_payment';
-        const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+        const hasEstornoTag =
+          (t.tags && t.tags.includes('estorno')) ||
+          (t.description && t.description.toLowerCase().includes('estorno'));
+
+        // 1. Is it a bill payment for this card?
+        let isBill = false;
+        if (
+          t.type === 'credit_card_payment' &&
+          (t.destinationAccount === cardId || (t as any).destination_account_id === cardId)
+        ) {
+          isBill = t.referenceMonth === this.currentMonthYear();
+        } else if (
+          (t.account === cardId || (t as any).account_id === cardId) &&
+          t.type === 'income' &&
+          !hasEstornoTag
+        ) {
+          if (t.referenceMonth) {
+            isBill = t.referenceMonth === this.currentMonthYear();
+          } else {
+            const dateT = new Date(t.date + 'T12:00:00');
+            const windowStart = new Date(closingDate);
+            windowStart.setDate(closingDate.getDate() - 5);
+            const windowEnd = new Date(dueDate);
+            windowEnd.setDate(dueDate.getDate() + 5);
+            isBill = dateT >= windowStart && dateT <= windowEnd;
+          }
+        }
+
         const categoryId = t.category || (t as any).category_id;
         const accountId = isBill
-          ? t.sourceAccount || (t as any).source_account_id
+          ? t.sourceAccount || (t as any).source_account_id || t.account || (t as any).account_id
           : t.account || (t as any).account_id;
 
         const cat = this.getCategory(categoryId, isBill);
@@ -449,8 +498,9 @@ export class DashboardComponent implements OnInit {
     return this.globalTransactions()
       .filter((t) => {
         if (!t.date) return false;
-        // Only include actual expenses in the weekly budget (Meta) tab calculations and list
-        if (t.type !== 'expense') return false;
+        // Include actual expenses OR transactions with 'estorno' tag in the weekly budget (Meta) tab calculations and list
+        const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+        if (t.type !== 'expense' && !hasEstornoTag) return false;
         const tDate = new Date(t.date + 'T00:00:00');
         return tDate >= range.start && tDate <= range.end;
       })
@@ -470,6 +520,7 @@ export class DashboardComponent implements OnInit {
 
     return txs.map((t) => {
       const isBill = t.type === 'credit_card_payment';
+      const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
       const categoryId = t.category || (t as any).category_id;
       const accountId = isBill
         ? t.sourceAccount || (t as any).source_account_id
@@ -477,43 +528,61 @@ export class DashboardComponent implements OnInit {
 
       const cat = this.getCategory(categoryId, isBill);
       const con = this.getAccount(accountId);
+
+      const isExpense = (t.type === 'expense' || isBill) && !hasEstornoTag;
+
       return {
         ...t,
         isBill,
+        isEstorno: hasEstornoTag,
         absoluteAmount: Math.abs(t.amount),
         formattedAmount: this.fm(t.amount),
         formattedDate: this.fd(t.date),
-        catName: cat.name,
-        catColor: cat.color,
-        catIcon: cat.iconClass,
+        catName: hasEstornoTag ? 'Refund' : cat.name,
+        catColor: hasEstornoTag ? 'bg-emerald-100 text-emerald-600' : cat.color,
+        catIcon: hasEstornoTag ? 'ph ph-arrow-counter-clockwise' : cat.iconClass,
         accountName: isBill ? `From: ${con.name}` : con.name,
-        isExpense: t.type === 'expense' || isBill,
+        isExpense,
       };
     });
   });
 
   weeklyExpensesTotal = computed(() => {
-    return this.weeklyTransactions()
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    return this.weeklyTransactions().reduce((sum, t) => {
+      const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+      const amount = t.amount || 0;
+      return sum + (hasEstornoTag ? -amount : amount);
+    }, 0);
   });
 
   weeklyExpensesWeeklyTotal = computed(() => {
     return this.weeklyTransactions()
-      .filter((t) => t.type === 'expense' && (t.spendingGroup === 'weekly' || !t.spendingGroup))
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .filter((t) => t.spendingGroup === 'weekly' || !t.spendingGroup)
+      .reduce((sum, t) => {
+        const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+        const amount = t.amount || 0;
+        return sum + (hasEstornoTag ? -amount : amount);
+      }, 0);
   });
 
   weeklyExpensesFixedTotal = computed(() => {
     return this.weeklyTransactions()
-      .filter((t) => t.type === 'expense' && t.spendingGroup === 'fixed')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .filter((t) => t.spendingGroup === 'fixed')
+      .reduce((sum, t) => {
+        const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+        const amount = t.amount || 0;
+        return sum + (hasEstornoTag ? -amount : amount);
+      }, 0);
   });
 
   weeklyExpensesEmergencyTotal = computed(() => {
     return this.weeklyTransactions()
-      .filter((t) => t.type === 'expense' && t.spendingGroup === 'emergency')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+      .filter((t) => t.spendingGroup === 'emergency')
+      .reduce((sum, t) => {
+        const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+        const amount = t.amount || 0;
+        return sum + (hasEstornoTag ? -amount : amount);
+      }, 0);
   });
 
   currentMonthName = computed(() => {
@@ -901,7 +970,9 @@ export class DashboardComponent implements OnInit {
 
     this.globalTransactions().forEach((t) => {
       // 1. Check if it's a refund (estorno) for this card
-      const hasEstornoTag = t.tags && t.tags.includes('estorno');
+      const hasEstornoTag =
+        (t.tags && t.tags.includes('estorno')) ||
+        (t.description && t.description.toLowerCase().includes('estorno'));
       const cardTag = t.tags && t.tags.find((tag: string) => tag.startsWith('estorno_card:'));
       const targetCardId = cardTag ? cardTag.split(':')[1] : t.account || (t as any).account_id;
       const isEstornoForThisCard = hasEstornoTag && targetCardId === card.id;
@@ -919,14 +990,36 @@ export class DashboardComponent implements OnInit {
         return;
       }
 
+      // 2. Check if it's a bill payment for this card
+      let isBillPayment = false;
       if (
         t.type === 'credit_card_payment' &&
-        (t.destinationAccount === card.id || (t as any).destination_account_id === card.id) &&
-        t.referenceMonth === this.currentMonthYear()
+        (t.destinationAccount === card.id || (t as any).destination_account_id === card.id)
       ) {
+        isBillPayment = t.referenceMonth === this.currentMonthYear();
+      } else if (
+        (t.account === card.id || (t as any).account_id === card.id) &&
+        t.type === 'income' &&
+        !hasEstornoTag
+      ) {
+        if (t.referenceMonth) {
+          isBillPayment = t.referenceMonth === this.currentMonthYear();
+        } else {
+          const dateT = new Date(t.date + 'T12:00:00');
+          const windowStart = new Date(closingDate);
+          windowStart.setDate(closingDate.getDate() - 5);
+          const windowEnd = new Date(dueDate);
+          windowEnd.setDate(dueDate.getDate() + 5);
+          isBillPayment = dateT >= windowStart && dateT <= windowEnd;
+        }
+      }
+
+      if (isBillPayment) {
         paidAmount += t.amount;
         return;
       }
+
+      // 3. Normal card transaction
       if (
         (t.account === card.id || (t as any).account_id === card.id) &&
         t.type !== 'credit_card_payment'
