@@ -115,6 +115,7 @@ export class DashboardComponent implements OnInit {
   // Weekly Goal Edit State
   weeklyGoalEditing = signal(false);
   weeklyGoalInput = signal<number>(500);
+  weekOffset = signal<number>(0);
 
   // Weekly Spending Filter State
   weeklySpendingFilter = signal<'all' | 'weekly' | 'fixed' | 'emergency'>('all');
@@ -422,6 +423,7 @@ export class DashboardComponent implements OnInit {
 
   currentWeekRange = computed(() => {
     const today = new Date();
+    today.setDate(today.getDate() + this.weekOffset() * 7);
     const day = today.getDay();
     const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
 
@@ -570,6 +572,7 @@ export class DashboardComponent implements OnInit {
 
   selectTab(tabId: 'dashboard' | 'transactions' | 'cards' | 'accounts' | 'categories' | 'meta') {
     this.activeTab.set(tabId);
+    this.weekOffset.set(0);
     const mainEl = document.querySelector('main');
     if (mainEl) {
       mainEl.scrollTop = 0;
@@ -591,6 +594,14 @@ export class DashboardComponent implements OnInit {
       this.financeService.saveWeeklyGoal(val);
     }
     this.weeklyGoalEditing.set(false);
+  }
+
+  changeWeek(offset: number) {
+    if (offset === 0) {
+      this.weekOffset.set(0);
+    } else {
+      this.weekOffset.update((w) => w + offset);
+    }
   }
 
   toggleFilter(filter: 'weekly' | 'fixed' | 'emergency') {

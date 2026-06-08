@@ -2,7 +2,12 @@
   <!-- Date Header -->
   <div class="flex items-center gap-2 text-sm font-semibold text-slate-500">
     <i class="ph ph-calendar text-lg"></i>
-    <span>Semana Atual: {{ parent().formattedWeekRange() }}</span>
+    <span>{{ parent().weekOffset() === 0 ? 'Semana Atual' : 'Semana' }}: {{ parent().formattedWeekRange() }}</span>
+    @if (parent().weekOffset() !== 0) {
+      <span class="px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-full animate-in zoom-in-95">
+        {{ parent().weekOffset() > 0 ? '+' + parent().weekOffset() + ' sem' : parent().weekOffset() + ' sem' }}
+      </span>
+    }
   </div>
 
   <!-- Row 1: Indicators Grid spanning full width -->
@@ -10,28 +15,14 @@
     <!-- Meta Semanal Card -->
     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-36 relative overflow-hidden">
       <div class="flex justify-between items-center w-full z-10">
-        <span class="text-slate-500 font-medium text-sm">Meta Semanal</span>
-        @if (!parent().weeklyGoalEditing()) {
-          <button (click)="parent().startEditingGoal()" class="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-indigo-600 transition" title="Editar Meta">
-            <i class="ph ph-pencil-simple text-base"></i>
-          </button>
-        }
+        <span class="text-slate-500 font-medium text-sm font-semibold">Meta Semanal</span>
+        <button (click)="parent().startEditingGoal()" class="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-indigo-600 transition" title="Editar Meta">
+          <i class="ph ph-pencil-simple text-base"></i>
+        </button>
       </div>
       
       <div class="z-10 mt-2">
-        @if (parent().weeklyGoalEditing()) {
-          <div class="flex items-center gap-2 w-full">
-            <div class="relative flex-1">
-              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">R$</span>
-              <input type="number" step="10" [value]="parent().weeklyGoalInput()" (input)="parent().weeklyGoalInput.set($any($event.target).value)" 
-                     class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-2 py-1.5 text-base font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
-            </div>
-            <button (click)="parent().confirmEditingGoal()" class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition" title="Salvar"><i class="ph ph-check"></i></button>
-            <button (click)="parent().cancelEditingGoal()" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition" title="Cancelar"><i class="ph ph-x"></i></button>
-          </div>
-        } @else {
-          <span class="text-2xl font-bold text-slate-800">{{ parent().fm(parent().weeklyGoal()) }}</span>
-        }
+        <span class="text-2xl font-bold text-slate-800">{{ parent().fm(parent().weeklyGoal()) }}</span>
       </div>
       <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-slate-50 rounded-full opacity-50 z-0"></div>
     </div>
