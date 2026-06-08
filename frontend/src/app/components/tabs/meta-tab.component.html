@@ -156,13 +156,22 @@
                    (click)="parent().openTransactionDetail(t)"
                    [class.bg-indigo-50]="t.isBill" 
                    [class.bg-opacity-30]="t.isBill" 
-                   [class.hover:bg-slate-50]="!t.isBill">
+                   [class.hover:bg-slate-50]="!t.isBill"
+                   [class.opacity-60]="t.excludeFromWeeklyGoal">
                 <div class="flex items-center gap-4 min-w-0 flex-1">
+                  <input type="checkbox" 
+                         [checked]="t.excludeFromWeeklyGoal" 
+                         (click)="$event.stopPropagation()"
+                         (change)="parent().toggleExcludeFromWeekly(t, $event)"
+                         class="h-4.5 w-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0 cursor-pointer" />
+                  
                   <div class="w-11 h-11 rounded-full flex items-center justify-center {{t.catColor}} shrink-0">
                     <i [class]="t.catIcon + ' text-lg'"></i>
                   </div>
                   <div class="min-w-0 flex-1">
-                    <p class="font-semibold text-sm text-slate-800 break-words whitespace-normal">{{ t.description }}</p>
+                    <p class="font-semibold text-sm text-slate-800 break-words whitespace-normal"
+                       [class.line-through]="t.excludeFromWeeklyGoal"
+                       [class.text-slate-400]="t.excludeFromWeeklyGoal">{{ t.description }}</p>
                     <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5 flex-wrap">
                       <span>{{ t.formattedDate }}</span>
                       <span>•</span>
@@ -171,7 +180,11 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-3 shrink-0 pl-2">
-                  <span class="font-bold text-sm shrink-0" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
+                  <span class="font-bold text-sm shrink-0" 
+                        [class.text-red-600]="t.isExpense && !t.excludeFromWeeklyGoal" 
+                        [class.text-green-600]="!t.isExpense && !t.excludeFromWeeklyGoal"
+                        [class.text-slate-400]="t.excludeFromWeeklyGoal"
+                        [class.line-through]="t.excludeFromWeeklyGoal">
                     {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
                   </span>
                 </div>

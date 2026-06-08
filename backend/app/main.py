@@ -48,7 +48,9 @@ async def spa_route_fallback(request: Request, exc: StarletteHTTPException):
             index_path = os.path.join(FRONTEND_DIR, "index.html")
             if os.path.exists(index_path):
                 return FileResponse(index_path)
-    return await request.app.default_exception_handler(request, exc)
+    from fastapi.exception_handlers import http_exception_handler
+
+    return await http_exception_handler(request, exc)
 
 
 # Mount static files to serve frontend client-side files

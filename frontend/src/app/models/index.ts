@@ -11,6 +11,7 @@ export interface Transaction {
   referenceMonth?: string;
   spendingGroup?: 'weekly' | 'fixed' | 'emergency';
   tags?: string[];
+  excludeFromWeeklyGoal?: boolean;
 }
 
 export interface Account {
@@ -40,4 +41,10 @@ export interface Category {
 export interface OpenFinanceLinkTokenResponse {
   linkToken: string;
   expiresAt?: string;
+}
+
+export interface WeeklyGoal {
+  id?: string;
+  weekStartDate: string;
+  amount: number;
 }

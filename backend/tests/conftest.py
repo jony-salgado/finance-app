@@ -67,6 +67,8 @@ def mock_supabase() -> Generator[MagicMock, None, None]:
         "app.api.endpoints.open_finance.supabase", mock_client
     ), patch(
         "app.api.endpoints.open_finance_helpers.supabase", mock_client
+    ), patch(
+        "app.api.endpoints.weekly_goals.supabase", mock_client
     ):
         yield mock_client
 

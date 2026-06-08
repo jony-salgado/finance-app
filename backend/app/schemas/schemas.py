@@ -15,6 +15,9 @@ class TransactionBase(BaseModel):
     reference_month: Optional[str] = Field(None, alias="referenceMonth")
     spending_group: Optional[str] = Field("weekly", alias="spendingGroup")
     tags: Optional[List[str]] = Field(default=None)
+    exclude_from_weekly_goal: Optional[bool] = Field(
+        default=False, alias="excludeFromWeeklyGoal"
+    )
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
@@ -89,3 +92,18 @@ class OpenFinanceWebhookPayload(BaseModel):
     event: str  # e.g., 'item/created', 'item/updated', 'transaction/created'
     item_id: Optional[str] = Field(None, alias="itemId")
     transaction: Optional[PluggyTransactionWebhook] = None
+
+
+class WeeklyGoalBase(BaseModel):
+    week_start_date: date = Field(..., alias="weekStartDate")
+    amount: float
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+
+class WeeklyGoalCreate(WeeklyGoalBase):
+    pass
+
+
+class WeeklyGoal(WeeklyGoalBase):
+    id: str

@@ -81,7 +81,6 @@ export class DashboardComponent implements OnInit {
   categories = this.financeService.categories;
   accounts = this.financeService.accounts;
   error = this.financeService.error;
-  weeklyGoal = this.financeService.weeklyGoal;
 
   // Modals & Forms State
   transactionModalOpen = signal(false);
@@ -493,6 +492,13 @@ export class DashboardComponent implements OnInit {
     return `${startStr} a ${endStr}`;
   });
 
+  weeklyGoal = computed(() => {
+    const range = this.currentWeekRange();
+    const mondayStr = range.start.toISOString().split('T')[0];
+    const goal = this.financeService.weeklyGoals().find((g) => g.weekStartDate === mondayStr);
+    return goal ? goal.amount : this.financeService.weeklyGoal();
+  });
+
   weeklyTransactions = computed(() => {
     const range = this.currentWeekRange();
     return this.globalTransactions()
@@ -548,15 +554,18 @@ export class DashboardComponent implements OnInit {
   });
 
   weeklyExpensesTotal = computed(() => {
-    return this.weeklyTransactions().reduce((sum, t) => {
-      const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
-      const amount = t.amount || 0;
-      return sum + (hasEstornoTag ? -amount : amount);
-    }, 0);
+    return this.weeklyTransactions()
+      .filter((t) => !t.excludeFromWeeklyGoal)
+      .reduce((sum, t) => {
+        const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
+        const amount = t.amount || 0;
+        return sum + (hasEstornoTag ? -amount : amount);
+      }, 0);
   });
 
   weeklyExpensesWeeklyTotal = computed(() => {
     return this.weeklyTransactions()
+      .filter((t) => !t.excludeFromWeeklyGoal)
       .filter((t) => t.spendingGroup === 'weekly' || !t.spendingGroup)
       .reduce((sum, t) => {
         const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
@@ -567,6 +576,7 @@ export class DashboardComponent implements OnInit {
 
   weeklyExpensesFixedTotal = computed(() => {
     return this.weeklyTransactions()
+      .filter((t) => !t.excludeFromWeeklyGoal)
       .filter((t) => t.spendingGroup === 'fixed')
       .reduce((sum, t) => {
         const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
@@ -577,6 +587,7 @@ export class DashboardComponent implements OnInit {
 
   weeklyExpensesEmergencyTotal = computed(() => {
     return this.weeklyTransactions()
+      .filter((t) => !t.excludeFromWeeklyGoal)
       .filter((t) => t.spendingGroup === 'emergency')
       .reduce((sum, t) => {
         const hasEstornoTag = !!(t.tags && t.tags.includes('estorno'));
@@ -660,7 +671,9 @@ export class DashboardComponent implements OnInit {
   confirmEditingGoal() {
     const val = parseFloat(this.weeklyGoalInput().toString());
     if (!isNaN(val) && val >= 0) {
-      this.financeService.saveWeeklyGoal(val);
+      const range = this.currentWeekRange();
+      const mondayStr = range.start.toISOString().split('T')[0];
+      this.financeService.saveWeeklyGoal(val, mondayStr);
     }
     this.weeklyGoalEditing.set(false);
   }
@@ -721,6 +734,29 @@ export class DashboardComponent implements OnInit {
     this.selectedTransactionForDetail.set(t);
     this.deleteConfirmOpen.set(false);
     this.transactionDetailModalOpen.set(true);
+  }
+
+  async toggleExcludeFromWeekly(t: any, event: Event) {
+    const checkbox = event.target as HTMLInputElement;
+    const checked = checkbox.checked;
+
+    const rawT = this.globalTransactions().find((item) => item.id === t.id);
+    if (!rawT) return;
+
+    const originalValue = rawT.excludeFromWeeklyGoal;
+
+    // Create a copy of the raw transaction with the updated field
+    const updatedTransaction = {
+      ...rawT,
+      excludeFromWeeklyGoal: checked,
+    };
+
+    // Update in database
+    const success = await this.financeService.updateTransaction(updatedTransaction);
+    if (!success) {
+      // Revert checkbox if update fails
+      checkbox.checked = !!originalValue;
+    }
   }
 
   closeTransactionDetail() {

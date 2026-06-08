@@ -1,6 +1,12 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Transaction, Account, Category, OpenFinanceLinkTokenResponse } from '../models';
+import {
+  Transaction,
+  Account,
+  Category,
+  OpenFinanceLinkTokenResponse,
+  WeeklyGoal,
+} from '../models';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
@@ -99,6 +105,7 @@ export class FinanceService {
   globalTransactions = signal<Transaction[]>([]);
   accounts = signal<Account[]>([]);
   categories = signal<Category[]>([]);
+  weeklyGoals = signal<WeeklyGoal[]>([]);
   error = signal<string | null>(null);
   weeklyGoal = signal<number>(this.loadWeeklyGoal());
 
@@ -114,7 +121,7 @@ export class FinanceService {
     return 500.0;
   }
 
-  saveWeeklyGoal(value: number) {
+  async saveWeeklyGoal(value: number, weekMondayStr?: string) {
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem('weeklyGoal', value.toString());
@@ -123,6 +130,30 @@ export class FinanceService {
       }
     }
     this.weeklyGoal.set(value);
+
+    if (weekMondayStr) {
+      const existing = this.weeklyGoals().find((g) => g.weekStartDate === weekMondayStr);
+
+      const goalData = {
+        weekStartDate: weekMondayStr,
+        amount: value,
+      };
+
+      try {
+        if (existing) {
+          await firstValueFrom(
+            this.http.put<WeeklyGoal>(`${this.apiUrl}/weekly-goals/${existing.id}`, goalData),
+          );
+        } else {
+          await firstValueFrom(
+            this.http.post<WeeklyGoal>(`${this.apiUrl}/weekly-goals/`, goalData),
+          );
+        }
+        await this.loadData();
+      } catch (err) {
+        console.error('Failed to save weekly goal to database', err);
+      }
+    }
   }
 
   constructor() {
@@ -148,6 +179,12 @@ export class FinanceService {
       );
       console.log('FinanceService: Transactions loaded', transactions);
       this.globalTransactions.set(transactions);
+
+      const weeklyGoals = await firstValueFrom(
+        this.http.get<WeeklyGoal[]>(`${this.apiUrl}/weekly-goals/`),
+      );
+      console.log('FinanceService: Weekly goals loaded', weeklyGoals);
+      this.weeklyGoals.set(weeklyGoals);
     } catch (error: any) {
       console.error('FinanceService: Error loading data', error);
       let msg = 'Failed to load data.';

@@ -38,6 +38,7 @@ CREATE TABLE transactions (
     is_paid BOOLEAN DEFAULT true,
     tags TEXT[],
     ignore_in_analytics BOOLEAN DEFAULT false,
+    exclude_from_weekly_goal BOOLEAN DEFAULT false,
     spending_group TEXT NOT NULL DEFAULT 'weekly' CHECK (spending_group IN ('weekly', 'fixed', 'emergency')),
     date DATE NOT NULL,
     reference_month TEXT,
@@ -53,3 +54,13 @@ CREATE INDEX IF NOT EXISTS idx_transactions_provider_transaction_id ON transacti
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+
+-- Create Weekly Goals table
+CREATE TABLE weekly_goals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    week_start_date DATE NOT NULL UNIQUE,
+    amount DECIMAL(12,2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE weekly_goals ENABLE ROW LEVEL SECURITY;
