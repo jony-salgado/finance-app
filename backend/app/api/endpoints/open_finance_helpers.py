@@ -368,6 +368,19 @@ def sync_single_account_transactions(
     except Exception:
         pass
 
+    # Fetch account type and provider_item_id to handle credit card payments
+    acc_res = (
+        supabase.table("accounts")
+        .select("type, provider_item_id")
+        .eq("id", internal_account_id)
+        .execute()
+    )
+    acc_type = None
+    provider_item_id = None
+    if acc_res.data:
+        acc_type = acc_res.data[0].get("type")
+        provider_item_id = acc_res.data[0].get("provider_item_id")
+
     for p_txn in results:
         # Check if transaction already exists by provider_transaction_id
         txn_exist = (
@@ -378,6 +391,38 @@ def sync_single_account_transactions(
         )
 
         if not txn_exist.data:
+            # Handle credit card payment classification and deduplication
+            desc_lower = p_txn["description"].lower()
+            is_cc_payment_desc = (
+                "pagamento recebido" in desc_lower
+                or "pagamento de fatura" in desc_lower
+                or "pagamento fatura" in desc_lower
+            )
+
+            is_debit = p_txn.get("type") == PLUGGY_TXN_TYPE_DEBIT
+
+            if acc_type == "credit_card" and is_cc_payment_desc and not is_debit:
+                # Skip positive transactions (income) on the credit card account itself
+                # since the payment is represented by the debit from the checking account.
+                continue
+
+            destination_account_id = None
+            is_cc_payment_type = False
+
+            if acc_type == "checking" and is_cc_payment_desc and is_debit:
+                # Automatically link checking account payment to matching card account
+                if provider_item_id:
+                    card_res = (
+                        supabase.table("accounts")
+                        .select("id")
+                        .eq("type", "credit_card")
+                        .eq("provider_item_id", provider_item_id)
+                        .execute()
+                    )
+                    if card_res.data:
+                        destination_account_id = card_res.data[0]["id"]
+                        is_cc_payment_type = True
+
             p_category = p_txn.get("category")
             category_id = None
             if p_category:
@@ -387,6 +432,10 @@ def sync_single_account_transactions(
             txn_data = map_pluggy_txn_dict_to_db(
                 p_txn, internal_account_id, category_id
             )
+            if is_cc_payment_type:
+                txn_data["type"] = "credit_card_payment"
+                txn_data["destination_account_id"] = destination_account_id
+
             # Upsert transaction
             supabase.table("transactions").upsert(
                 txn_data, on_conflict="provider_transaction_id"
@@ -403,7 +452,7 @@ def process_webhook_transaction(txn) -> bool:
     """
     res = (
         supabase.table("accounts")
-        .select("id")
+        .select("id, type, provider_item_id")
         .eq("provider_account_id", txn.account_id)
         .execute()
     )
@@ -412,6 +461,8 @@ def process_webhook_transaction(txn) -> bool:
         return False
 
     internal_account_id = res.data[0]["id"]
+    acc_type = res.data[0].get("type")
+    provider_item_id = res.data[0].get("provider_item_id")
 
     category_map = {}
     try:
@@ -423,6 +474,35 @@ def process_webhook_transaction(txn) -> bool:
     except Exception:
         pass
 
+    # Handle credit card payment classification and deduplication for webhook
+    desc_lower = txn.description.lower()
+    is_cc_payment_desc = (
+        "pagamento recebido" in desc_lower
+        or "pagamento de fatura" in desc_lower
+        or "pagamento fatura" in desc_lower
+    )
+    is_debit = txn.type == PLUGGY_TXN_TYPE_DEBIT if txn.type else txn.amount < 0
+
+    if acc_type == "credit_card" and is_cc_payment_desc and not is_debit:
+        # Skip credit card payment webhook transaction on the card account
+        return True
+
+    destination_account_id = None
+    is_cc_payment_type = False
+
+    if acc_type == "checking" and is_cc_payment_desc and is_debit:
+        if provider_item_id:
+            card_res = (
+                supabase.table("accounts")
+                .select("id")
+                .eq("type", "credit_card")
+                .eq("provider_item_id", provider_item_id)
+                .execute()
+            )
+            if card_res.data:
+                destination_account_id = card_res.data[0]["id"]
+                is_cc_payment_type = True
+
     p_category = getattr(txn, "category", None)
     category_id = None
     if p_category:
@@ -430,6 +510,9 @@ def process_webhook_transaction(txn) -> bool:
         category_id = category_map.get(mapped_name.lower())
 
     txn_data = map_pluggy_txn_webhook_to_db(txn, internal_account_id, category_id)
+    if is_cc_payment_type:
+        txn_data["type"] = "credit_card_payment"
+        txn_data["destination_account_id"] = destination_account_id
 
     supabase.table("transactions").upsert(
         txn_data, on_conflict="provider_transaction_id"

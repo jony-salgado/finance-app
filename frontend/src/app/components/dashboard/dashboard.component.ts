@@ -1027,31 +1027,33 @@ export class DashboardComponent implements OnInit {
       }
 
       // 2. Check if it's a bill payment for this card
-      let isBillPayment = false;
-      if (
-        t.type === 'credit_card_payment' &&
-        (t.destinationAccount === card.id || (t as any).destination_account_id === card.id)
-      ) {
-        isBillPayment = t.referenceMonth === this.currentMonthYear();
-      } else if (
-        (t.account === card.id || (t as any).account_id === card.id) &&
-        t.type === 'income' &&
-        !hasEstornoTag
-      ) {
+      const isPotentialBillPayment =
+        (t.type === 'credit_card_payment' &&
+          (t.destinationAccount === card.id ||
+            (t as any).destination_account_id === card.id ||
+            t.account === card.id ||
+            (t as any).account_id === card.id)) ||
+        ((t.account === card.id || (t as any).account_id === card.id) &&
+          t.type === 'income' &&
+          !isEstornoForThisCard);
+
+      if (isPotentialBillPayment) {
+        let isBillPaymentForThisMonth = false;
         if (t.referenceMonth) {
-          isBillPayment = t.referenceMonth === this.currentMonthYear();
+          isBillPaymentForThisMonth = t.referenceMonth === this.currentMonthYear();
         } else {
           const dateT = new Date(t.date + 'T12:00:00');
           const windowStart = new Date(closingDate);
           windowStart.setDate(closingDate.getDate() - 5);
           const windowEnd = new Date(dueDate);
           windowEnd.setDate(dueDate.getDate() + 5);
-          isBillPayment = dateT >= windowStart && dateT <= windowEnd;
+          isBillPaymentForThisMonth = dateT >= windowStart && dateT <= windowEnd;
         }
-      }
 
-      if (isBillPayment) {
-        paidAmount += t.amount;
+        if (isBillPaymentForThisMonth) {
+          paidAmount += t.amount;
+        }
+        // Always return early for any bill payment transaction so it doesn't count as normal income/expense in section 3
         return;
       }
 
