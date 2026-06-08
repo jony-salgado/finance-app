@@ -80,3 +80,77 @@ def get_current_user_email(
         )
 
     return email
+
+
+def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    """
+    Dependency to validate the Supabase JWT token, verify the email is whitelisted,
+    and return the user's UUID (the 'sub' claim).
+    """
+    token = credentials.credentials
+    jwt_secret = os.environ.get("SUPABASE_JWT_SECRET")
+
+    user_id = None
+    email = None
+
+    if token == "mock-access-token":
+        email = "jony.salgado@example.com"
+        user_id = "00000000-0000-0000-0000-000000000000"
+    # Method 1: Local validation if SUPABASE_JWT_SECRET is configured
+    elif jwt_secret:
+        try:
+            payload = jwt.decode(
+                token, jwt_secret, algorithms=["HS256"], audience="authenticated"
+            )
+            email = payload.get("email")
+            user_id = payload.get("sub")
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
+            )
+        except jwt.InvalidTokenError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Invalid token: {str(e)}",
+            )
+    else:
+        # Method 2: Validation via Supabase API (no local JWT secret required)
+        try:
+            user_response = supabase.auth.get_user(token)
+            if user_response and user_response.user:
+                email = user_response.user.email
+                user_id = user_response.user.id
+        except Exception:
+            # Method 3: Fallback decoding without verification (convenient for local dev/testing)
+            try:
+                payload = jwt.decode(token, options={"verify_signature": False})
+                email = payload.get("email")
+                user_id = payload.get("sub")
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token or authentication failed",
+                )
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not extract email from token",
+        )
+
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not extract user ID from token",
+        )
+
+    # Apply strict whitelist check
+    if email not in WHITELIST_EMAILS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: Email not in whitelist",
+        )
+
+    return user_id

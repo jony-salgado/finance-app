@@ -9,3 +9,4 @@ pluggy-sdk
 pytest
 pytest-asyncio
 black
+pandas

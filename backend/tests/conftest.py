@@ -69,6 +69,8 @@ def mock_supabase() -> Generator[MagicMock, None, None]:
         "app.api.endpoints.open_finance_helpers.supabase", mock_client
     ), patch(
         "app.api.endpoints.weekly_goals.supabase", mock_client
+    ), patch(
+        "app.api.endpoints.assets.supabase", mock_client
     ):
         yield mock_client
 
@@ -79,11 +81,14 @@ def client() -> Generator[TestClient, None, None]:
     Fixture providing a TestClient for testing the FastAPI application endpoints.
     """
     from app.main import app
-    from app.core.security import get_current_user_email
+    from app.core.security import get_current_user_email, get_current_user_id
 
     # Override the security dependency to return a whitelisted email during tests
     app.dependency_overrides[get_current_user_email] = (
         lambda: "jony.salgado@example.com"
+    )
+    app.dependency_overrides[get_current_user_id] = (
+        lambda: "00000000-0000-0000-0000-000000000000"
     )
 
     with TestClient(app) as test_client:

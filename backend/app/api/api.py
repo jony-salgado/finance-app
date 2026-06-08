@@ -1,5 +1,12 @@
 from fastapi import APIRouter
-from .endpoints import transactions, accounts, categories, open_finance, weekly_goals
+from .endpoints import (
+    transactions,
+    accounts,
+    categories,
+    open_finance,
+    weekly_goals,
+    assets,
+)
 
 api_router = APIRouter()
 api_router.include_router(
@@ -13,3 +20,4 @@ api_router.include_router(
 api_router.include_router(
     weekly_goals.router, prefix="/weekly-goals", tags=["weekly-goals"]
 )
+api_router.include_router(assets.router, prefix="/assets", tags=["assets"])
