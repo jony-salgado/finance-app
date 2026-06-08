@@ -51,8 +51,61 @@
     @for (chart of parent().chartCards(); track chart.title) {
       <app-card-pizza 
         [title]="chart.title" 
-        [data]="chart.data">
+        [data]="chart.data"
+        [selectedId]="parent().getSelectedChartItemId(chart.title)"
+        [selectItem]="parent().getChartCallback(chart.title)">
       </app-card-pizza>
     }
   </div>
+
+  <!-- Selected Dashboard Filter Transactions Detail Section -->
+  @if (parent().selectedDashboardFilter(); as filter) {
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+      <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+        <div>
+          <h3 class="text-lg font-bold text-slate-800">{{ parent().selectedDashboardFilterTitle() }}</h3>
+          <p class="text-xs text-slate-500 mt-1">Showing transactions in the current month</p>
+        </div>
+        <button (click)="parent().selectedDashboardFilter.set(null)" class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 font-semibold transition-colors">
+          <i class="ph ph-x text-sm"></i> Close Details
+        </button>
+      </div>
+
+      @if (parent().selectedDashboardTransactions().length === 0) {
+        <div class="text-center py-12">
+          <i class="ph ph-list-numbers text-5xl text-slate-300 mb-4 block"></i>
+          <p class="text-slate-500 font-medium">No transactions found for this selection in the current month.</p>
+        </div>
+      } @else {
+        <div class="space-y-3">
+          @for (t of parent().selectedDashboardTransactions(); track t.id) {
+            <div class="flex items-center justify-between p-3 rounded-xl transition border border-transparent hover:border-slate-100 hover:bg-slate-50 group cursor-pointer"
+                 (click)="parent().openTransactionDetail(t)">
+              <div class="flex items-center gap-4 min-w-0 flex-1">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center {{t.catColor}} shrink-0">
+                  <i [class]="t.catIcon + ' text-xl'"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                    <p class="font-semibold text-slate-800 break-words whitespace-normal">{{ t.description }}</p>
+                  </div>
+                  <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
+                    <span>{{ t.formattedDate }}</span>
+                    <span>•</span>
+                    <span><i class="ph ph-bank text-xs"></i> {{ t.accountName }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 shrink-0 pl-2">
+                <span class="font-bold text-base shrink-0" [class.text-red-600]="t.isExpense" [class.text-green-600]="!t.isExpense">
+                  {{ t.isExpense ? '-' : '+' }}{{ t.formattedAmount }}
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
 </div>

@@ -111,6 +111,11 @@ export class DashboardComponent implements OnInit {
   // Selected Card for transaction list details
   selectedCardIdForTransactions = signal<string | null>(null);
 
+  // Selected Dashboard Filter for transaction list details
+  selectedDashboardFilter = signal<{ type: 'category' | 'account' | 'group'; id: string } | null>(
+    null,
+  );
+
   // Weekly Goal Edit State
   weeklyGoalEditing = signal(false);
   weeklyGoalInput = signal<number>(500);
@@ -172,6 +177,99 @@ export class DashboardComponent implements OnInit {
     return [...this.globalTransactions()]
       .filter((t) => String(t.date).startsWith(month) || t.referenceMonth === month)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
+
+  mapDashboardTransaction(t: any) {
+    const isBill = t.type === 'credit_card_payment';
+    const categoryId = t.category || (t as any).category_id;
+    const accountId = isBill
+      ? t.sourceAccount || (t as any).source_account_id
+      : t.account || (t as any).account_id;
+
+    const cat = this.getCategory(categoryId, isBill);
+    const con = this.getAccount(accountId);
+    return {
+      ...t,
+      isBill,
+      absoluteAmount: Math.abs(t.amount),
+      formattedAmount: this.fm(t.amount),
+      formattedDate: this.fd(t.date),
+      catName: cat.name,
+      catColor: cat.color,
+      catIcon: cat.iconClass,
+      accountName: isBill ? `From: ${con.name}` : con.name,
+      isExpense: t.type === 'expense' || isBill,
+    };
+  }
+
+  selectedDashboardTransactions = computed(() => {
+    const filter = this.selectedDashboardFilter();
+    if (!filter) return [];
+
+    const monthTxns = this.monthTransactions();
+
+    if (filter.type === 'category') {
+      return monthTxns
+        .filter((t) => {
+          if (t.type === 'credit_card_payment') return false;
+          const catId = t.category || (t as any).category_id;
+          return catId === filter.id && t.type === 'expense';
+        })
+        .map((t) => this.mapDashboardTransaction(t));
+    }
+
+    if (filter.type === 'account') {
+      return monthTxns
+        .filter((t) => {
+          const isBill = t.type === 'credit_card_payment';
+          if (isBill) {
+            const srcAcc = t.sourceAccount || (t as any).source_account_id;
+            const destAcc = t.destinationAccount || (t as any).destination_account_id;
+            return srcAcc === filter.id || destAcc === filter.id;
+          } else {
+            const accId = t.account || (t as any).account_id;
+            const cardTag = t.tags && t.tags.find((tag: string) => tag.startsWith('estorno_card:'));
+            const estornoCardId = cardTag ? cardTag.split(':')[1] : null;
+            return (accId === filter.id || estornoCardId === filter.id) && t.type === 'expense';
+          }
+        })
+        .map((t) => this.mapDashboardTransaction(t));
+    }
+
+    if (filter.type === 'group') {
+      return monthTxns
+        .filter((t) => {
+          if (t.type === 'credit_card_payment') return false;
+          const grp = t.spendingGroup || 'weekly';
+          return grp === filter.id && t.type === 'expense';
+        })
+        .map((t) => this.mapDashboardTransaction(t));
+    }
+
+    return [];
+  });
+
+  selectedDashboardFilterTitle = computed(() => {
+    const filter = this.selectedDashboardFilter();
+    if (!filter) return '';
+
+    if (filter.type === 'category') {
+      const cat = this.categories().find((c) => c.id === filter.id);
+      return `Transactions in Category: ${cat ? cat.name : 'Unknown'}`;
+    }
+    if (filter.type === 'account') {
+      const acc = this.accounts().find((a) => a.id === filter.id);
+      return `Transactions in Account/Card: ${acc ? acc.name : 'Unknown'}`;
+    }
+    if (filter.type === 'group') {
+      const names: Record<string, string> = {
+        weekly: 'Weekly',
+        fixed: 'Fixed',
+        emergency: 'Emergency',
+      };
+      return `Transactions in Group: ${names[filter.id] || filter.id}`;
+    }
+    return '';
   });
 
   displayTransactions = computed(() => {
@@ -653,10 +751,61 @@ export class DashboardComponent implements OnInit {
   selectTab(tabId: 'dashboard' | 'transactions' | 'cards' | 'accounts' | 'categories' | 'meta') {
     this.activeTab.set(tabId);
     this.weekOffset.set(0);
+    this.selectedDashboardFilter.set(null);
     const mainEl = document.querySelector('main');
     if (mainEl) {
       mainEl.scrollTop = 0;
     }
+  }
+
+  getSelectedChartItemId(chartTitle: string): string | null {
+    const filter = this.selectedDashboardFilter();
+    if (!filter) return null;
+
+    if (chartTitle.includes('Category') && filter.type === 'category') {
+      return filter.id;
+    }
+    if (chartTitle.includes('Account/Card') && filter.type === 'account') {
+      return filter.id;
+    }
+    if (chartTitle.includes('Group') && filter.type === 'group') {
+      return filter.id;
+    }
+    return null;
+  }
+
+  onChartItemSelect(chartTitle: string, itemId: string | null) {
+    if (!itemId) {
+      this.selectedDashboardFilter.set(null);
+      return;
+    }
+
+    let type: 'category' | 'account' | 'group' = 'category';
+    if (chartTitle.includes('Category')) {
+      type = 'category';
+    } else if (chartTitle.includes('Account/Card')) {
+      type = 'account';
+    } else if (chartTitle.includes('Group')) {
+      type = 'group';
+    }
+
+    // Toggle logic: if clicking already selected item, clear it
+    const current = this.selectedDashboardFilter();
+    if (current && current.type === type && current.id === itemId) {
+      this.selectedDashboardFilter.set(null);
+    } else {
+      this.selectedDashboardFilter.set({ type, id: itemId });
+    }
+  }
+
+  onCategorySelect = (id: string | null) => this.onChartItemSelect('Category', id);
+  onAccountSelect = (id: string | null) => this.onChartItemSelect('Account/Card', id);
+  onGroupSelect = (id: string | null) => this.onChartItemSelect('Group', id);
+
+  getChartCallback(chartTitle: string) {
+    if (chartTitle.includes('Category')) return this.onCategorySelect;
+    if (chartTitle.includes('Account/Card')) return this.onAccountSelect;
+    return this.onGroupSelect;
   }
 
   startEditingGoal() {
